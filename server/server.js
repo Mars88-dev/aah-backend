@@ -15,25 +15,27 @@ const authRoutes = require("./routes/authRoutes");
 const app = express();
 app.use(express.json());
 
-// ✅ Corrected CORS config
-app.use(cors({
-  origin: "http://localhost:3000",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
-  exposedHeaders: ["Content-Disposition"],
-}));
+// ✅ CORS setup — allow Render frontend
+app.use(
+  cors({
+    origin: ["https://aah-frontend.onrender.com", "http://localhost:3000"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+    exposedHeaders: ["Content-Disposition"],
+  })
+);
 
-// ✅ Serve static assets after CORS
+// ✅ Serve static assets
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/templates", express.static(path.join(__dirname, "client/public/templates")));
 app.use("/outros", express.static(path.join(__dirname, "assets/outros")));
 
-// ✅ Initialize OpenAI
+// ✅ OpenAI setup
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ✅ OpenAI-powered Description Generator
+// ✅ Property description generator
 app.post("/api/generate-description", async (req, res) => {
   const { heading, bedrooms, bathrooms, location, features } = req.body;
 
@@ -58,21 +60,15 @@ Only output the description (no headings or formatting).
       max_tokens: 300,
     });
 
-    if (!response || !response.choices || !response.choices[0].message) {
-      console.error("❌ Unexpected OpenAI response:", response);
-      return res.status(500).json({ description: "Unexpected OpenAI response format." });
-    }
-
     const description = response.choices[0].message.content.trim();
     res.json({ description });
-
   } catch (err) {
     console.error("❌ OpenAI API Error:", err?.response?.data || err.message);
     res.status(500).json({ description: "Failed to generate description." });
   }
 });
 
-// ✅ OpenAI-powered Image Generator (DALL·E 3)
+// ✅ Image generator
 app.post("/api/generate-image", async (req, res) => {
   const { prompt } = req.body;
 
@@ -87,14 +83,11 @@ app.post("/api/generate-image", async (req, res) => {
 
     const imageUrl = response?.data?.[0]?.url;
     if (!imageUrl) {
-      console.error("❌ No image URL returned from OpenAI.");
       return res.status(500).json({ error: "No image URL returned from OpenAI." });
     }
 
-    // Download and convert to base64
     const imageRes = await axios.get(imageUrl, { responseType: "arraybuffer" });
     const base64Image = `data:image/png;base64,${Buffer.from(imageRes.data).toString("base64")}`;
-
     res.json({ image: base64Image });
   } catch (err) {
     console.error("❌ OpenAI Image Generation Error:", err.response?.data || err.message);
@@ -102,7 +95,7 @@ app.post("/api/generate-image", async (req, res) => {
   }
 });
 
-// ✅ MongoDB
+// ✅ MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -111,7 +104,7 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ Routes
+// ✅ API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/agents", agentRoutes);
 app.use("/api/listings", listingRoutes);
