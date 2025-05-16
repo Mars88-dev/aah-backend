@@ -30,7 +30,7 @@ const AddVideo = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/videos/combine",
+        "https://aah-backend.onrender.com/api/videos/combine",
         formData,
         {
           headers: {

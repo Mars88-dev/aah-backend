@@ -23,7 +23,7 @@ const EditListing = () => {
     const fetchListing = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(`http://localhost:5000/api/listings/${id}`, {
+        const res = await axios.get(`https://aah-backend.onrender.com/api/listings/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -45,7 +45,7 @@ const EditListing = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:5000/api/listings/${id}`, form, {
+      await axios.put(`https://aah-backend.onrender.com/api/listings/${id}`, form, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

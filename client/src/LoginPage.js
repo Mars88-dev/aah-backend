@@ -22,7 +22,7 @@ function LoginPage() {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", formData);
+      const response = await axios.post("https://aah-backend.onrender.com/api/auth/login", formData);
       const { token, user } = response.data;
 
       localStorage.setItem("token", token);

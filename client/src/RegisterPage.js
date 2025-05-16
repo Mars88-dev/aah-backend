@@ -22,7 +22,7 @@ function RegisterPage() {
 
   const handleRegister = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/register", formData);
+      const response = await axios.post("https://aah-backend.onrender.com/api/auth/register", formData);
       setMessage("🎉 Registration successful!");
       setError("");
     } catch (err) {

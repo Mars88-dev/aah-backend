@@ -18,7 +18,7 @@ const ImageGenerator = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post("http://localhost:5000/api/generate-image", { prompt });
+      const res = await axios.post("https://aah-backend.onrender.com/api/generate-image", { prompt });
       setImageSrc(res.data.image);
     } catch (err) {
       console.error("❌ Failed to generate image:", err);

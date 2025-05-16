@@ -37,7 +37,7 @@ const AddListing = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:5000/api/listings", formData, {
+      await axios.post("https://aah-backend.onrender.com/api/listings", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",

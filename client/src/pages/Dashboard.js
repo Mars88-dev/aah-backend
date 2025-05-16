@@ -3,6 +3,8 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import FlyerPreview from "../components/FlyerPreview";
 
+const BASE_URL = "https://aah-backend.onrender.com";
+
 const Dashboard = () => {
   const [listings, setListings] = useState([]);
   const [videos, setVideos] = useState([]);
@@ -24,7 +26,7 @@ const Dashboard = () => {
 
   const fetchListings = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/listings", {
+      const res = await axios.get("https://aah-backend.onrender.com/api/listings", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setListings(res.data);
@@ -36,7 +38,7 @@ const Dashboard = () => {
 
   const fetchVideos = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/videos", {
+      const res = await axios.get("https://aah-backend.onrender.com/api/videos", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setVideos(res.data);
@@ -62,7 +64,7 @@ const Dashboard = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this listing?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/listings/${id}`, {
+        await axios.delete(`https://aah-backend.onrender.com/api/listings/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         fetchListings();
@@ -76,7 +78,7 @@ const Dashboard = () => {
   const handleDeleteVideo = async (id) => {
     if (window.confirm("Are you sure you want to delete this video?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/videos/${id}`, {
+        await axios.delete(`https://aah-backend.onrender.com/api/videos/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         fetchVideos();
@@ -174,7 +176,7 @@ const Dashboard = () => {
             {listings.map((listing) => (
               <div key={listing._id} className="p-5 h-full bg-gradient-to-tr from-black to-slate-900 rounded-2xl shadow-xl hover:scale-[1.02] transition flex flex-col justify-between">
                 {listing.coverImage && (
-                  <img src={`http://localhost:5000${listing.coverImage}`} alt="Cover" className="object-cover w-full h-48 mb-3 rounded-xl" />
+                  <img src={`https://aah-backend.onrender.com${listing.coverImage}`} alt="Cover" className="object-cover w-full h-48 mb-3 rounded-xl" />
                 )}
                 <div className="flex-grow">
                   <h3 className="text-xl font-bold text-cyan-300">{listing.title}</h3>
@@ -234,10 +236,10 @@ const Dashboard = () => {
             {videos.map((video) => (
               <div key={video._id} className="p-4 shadow-lg bg-slate-800 rounded-xl">
                 <video controls className="w-full rounded-md">
-                  <source src={`http://localhost:5000/uploads/videos/${video.filename}`} type="video/mp4" />
+                  <source src={`https://aah-backend.onrender.com/uploads/videos/${video.filename}`} type="video/mp4" />
                 </video>
                 <div className="mt-4 space-y-2">
-                  <a href={`http://localhost:5000/uploads/videos/${video.filename}`} download className="block w-full px-4 py-2 text-center text-white bg-green-500 rounded hover:bg-green-600">
+                  <a href={`https://aah-backend.onrender.com/uploads/videos/${video.filename}`} download className="block w-full px-4 py-2 text-center text-white bg-green-500 rounded hover:bg-green-600">
                     ⬇ Download Video
                   </a>
                   <button onClick={() => handleDeleteVideo(video._id)} className="block w-full px-4 py-2 text-center text-white bg-red-500 rounded hover:bg-red-600">

@@ -18,7 +18,7 @@ const DescriptionGenerator = () => {
 
   const handleGenerate = async () => {
     try {
-      const res = await axios.post("http://localhost:5000/api/generate-description", form);
+      const res = await axios.post("https://aah-backend.onrender.com/api/generate-description", form);
       setDescription(res.data.description);
       setCopied(false);
     } catch (err) {
