@@ -12,9 +12,6 @@ const listingRoutes = require("./routes/listingRoutes");
 const flyerRoutes = require("./routes/flyerRoutes");
 const authRoutes = require("./routes/authRoutes");
 
-const app = express();
-app.use(express.json());
-
 // ✅ CORS setup — allow Render frontend
 app.use(cors({
   origin: ["http://localhost:3000", "https://aah-frontend.onrender.com"],
@@ -22,6 +19,9 @@ app.use(cors({
   credentials: true,
   exposedHeaders: ["Content-Disposition"],
 }));
+
+const app = express();
+app.use(express.json());
 
 // ✅ Serve static assets
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
