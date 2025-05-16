@@ -1,6 +1,4 @@
 node_modules/
-uploads/
-output/
 *.pt
 *.safetensors
 *.dll
@@ -8,4 +6,4 @@ output/
 *.lib
 *.mp4
 *.zip
-.env
+
