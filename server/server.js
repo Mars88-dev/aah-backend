@@ -16,14 +16,12 @@ const app = express();
 app.use(express.json());
 
 // ✅ CORS setup — allow Render frontend
-app.use(
-  cors({
-    origin: ["https://aah-frontend.onrender.com", "http://localhost:3000"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-    exposedHeaders: ["Content-Disposition"],
-  })
-);
+app.use(cors({
+  origin: ["http://localhost:3000", "https://aah-frontend.onrender.com"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+  exposedHeaders: ["Content-Disposition"],
+}));
 
 // ✅ Serve static assets
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
