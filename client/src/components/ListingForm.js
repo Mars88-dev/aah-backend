@@ -41,7 +41,7 @@ const ListingForm = () => {
     }
 
     try {
-      await axios.post("http://localhost:5000/api/listings", formData, {
+      await axios.post("https://aah-backend.onrender.com/api/listings", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -166,7 +166,6 @@ const ListingForm = () => {
           <option value="victoria.png">Victoria</option>
         </select>
 
-        {/* Submit */}
         <button
           type="submit"
           className="w-full px-6 py-3 font-bold text-white transition duration-200 bg-green-500 rounded-xl hover:bg-green-600"

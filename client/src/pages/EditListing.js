@@ -24,11 +24,12 @@ const EditListing = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(`https://aah-backend.onrender.com/api/listings/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setForm(res.data);
+
+        // Safety: some APIs might return { listing: {...} }, others directly {...}
+        const listingData = res.data.listing || res.data;
+        setForm(listingData);
       } catch (err) {
         console.error("Error fetching listing:", err);
         setMessage("❌ Failed to load listing.");
@@ -46,9 +47,7 @@ const EditListing = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(`https://aah-backend.onrender.com/api/listings/${id}`, form, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       navigate("/dashboard");
     } catch (err) {

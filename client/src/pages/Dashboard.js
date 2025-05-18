@@ -9,7 +9,6 @@ const Dashboard = () => {
   const [message, setMessage] = useState("");
   const canvasRef = useRef(null);
   const navigate = useNavigate();
-
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -21,7 +20,7 @@ const Dashboard = () => {
 
   const fetchListings = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/listings", {
+      const res = await axios.get("https://aah-backend.onrender.com/api/listings", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setListings(res.data);
@@ -33,7 +32,7 @@ const Dashboard = () => {
 
   const fetchVideos = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/videos", {
+      const res = await axios.get("https://aah-backend.onrender.com/api/videos", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setVideos(res.data);
@@ -49,7 +48,7 @@ const Dashboard = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this listing?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/listings/${id}`, {
+        await axios.delete(`https://aah-backend.onrender.com/api/listings/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         fetchListings();
@@ -63,7 +62,7 @@ const Dashboard = () => {
   const handleDeleteVideo = async (id) => {
     if (window.confirm("Are you sure you want to delete this video?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/videos/${id}`, {
+        await axios.delete(`https://aah-backend.onrender.com/api/videos/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         fetchVideos();
@@ -108,9 +107,12 @@ const Dashboard = () => {
   const handleGenerateFlyer = async (listingId) => {
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/flyers/generate",
+        "https://aah-backend.onrender.com/api/flyers/generate",
         { listingId },
-        { responseType: "blob", headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
       );
       const blob = new Blob([res.data], { type: "image/jpeg" });
       const url = window.URL.createObjectURL(blob);
@@ -178,7 +180,7 @@ const Dashboard = () => {
             {listings.map((listing) => (
               <div key={listing._id} className="p-5 h-full bg-gradient-to-tr from-black to-slate-900 rounded-2xl shadow-xl hover:scale-[1.02] transition flex flex-col justify-between">
                 {listing.coverImage && (
-                  <img src={`http://localhost:5000${listing.coverImage}`} alt="Cover" className="object-cover w-full h-48 mb-3 rounded-xl" />
+                  <img src={`https://aah-backend.onrender.com${listing.coverImage}`} alt="Cover" className="object-cover w-full h-48 mb-3 rounded-xl" />
                 )}
                 <div className="flex-grow">
                   <h3 className="text-xl font-bold text-cyan-300">{listing.title}</h3>
@@ -191,19 +193,10 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <button
-                    onClick={() => handleGenerateFlyer(listing._id)}
-                    className="w-full py-2 font-semibold text-white bg-green-600 rounded hover:bg-green-700"
-                  >
-                    🖨️ Generate Flyer
-                  </button>
+                  <button onClick={() => handleGenerateFlyer(listing._id)} className="w-full py-2 font-semibold text-white bg-green-600 rounded hover:bg-green-700">🖨️ Generate Flyer</button>
                   <div className="flex flex-col justify-between gap-2 mt-3 sm:flex-row">
-                    <button onClick={() => handleEdit(listing._id)} className="w-full py-2 font-medium text-white bg-blue-500 rounded hover:bg-blue-600">
-                      ✏️ Edit
-                    </button>
-                    <button onClick={() => handleDelete(listing._id)} className="w-full py-2 font-medium text-white bg-red-500 rounded hover:bg-red-600">
-                      🗑️ Delete
-                    </button>
+                    <button onClick={() => handleEdit(listing._id)} className="w-full py-2 font-medium text-white bg-blue-500 rounded hover:bg-blue-600">✏️ Edit</button>
+                    <button onClick={() => handleDelete(listing._id)} className="w-full py-2 font-medium text-white bg-red-500 rounded hover:bg-red-600">🗑️ Delete</button>
                   </div>
                 </div>
               </div>
@@ -219,12 +212,8 @@ const Dashboard = () => {
                 <div key={index} className="relative flex flex-col h-full p-2 bg-gradient-to-tr from-black to-slate-900 rounded-xl">
                   <img src={url} alt={`AI ${index}`} className="object-cover w-full h-48 rounded-md" />
                   <div className="flex items-center justify-between mt-2">
-                    <button onClick={() => handleDownloadImage(url)} className="flex-1 px-3 py-1 mr-1 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
-                      ⬇ Save
-                    </button>
-                    <button onClick={() => handleDeleteImage(index)} className="flex-1 px-3 py-1 ml-1 text-xs text-white bg-red-600 rounded hover:bg-red-700">
-                      🗑️ Delete
-                    </button>
+                    <button onClick={() => handleDownloadImage(url)} className="flex-1 px-3 py-1 mr-1 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">⬇ Save</button>
+                    <button onClick={() => handleDeleteImage(index)} className="flex-1 px-3 py-1 ml-1 text-xs text-white bg-red-600 rounded hover:bg-red-700">🗑️ Delete</button>
                   </div>
                 </div>
               ))}
@@ -238,10 +227,10 @@ const Dashboard = () => {
             {videos.map((video) => (
               <div key={video._id} className="p-4 shadow-lg bg-slate-800 rounded-xl">
                 <video controls className="w-full rounded-md">
-                  <source src={`http://localhost:5000/uploads/videos/${video.filename}`} type="video/mp4" />
+                  <source src={`https://aah-backend.onrender.com/uploads/videos/${video.filename}`} type="video/mp4" />
                 </video>
                 <div className="mt-4 space-y-2">
-                  <a href={`http://localhost:5000/uploads/videos/${video.filename}`} download className="block w-full px-4 py-2 text-center text-white bg-green-500 rounded hover:bg-green-600">
+                  <a href={`https://aah-backend.onrender.com/uploads/videos/${video.filename}`} download className="block w-full px-4 py-2 text-center text-white bg-green-500 rounded hover:bg-green-600">
                     ⬇ Download Video
                   </a>
                   <button onClick={() => handleDeleteVideo(video._id)} className="block w-full px-4 py-2 text-center text-white bg-red-500 rounded hover:bg-red-600">

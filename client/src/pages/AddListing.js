@@ -85,19 +85,55 @@ const AddListing = () => {
           />
         ))}
 
-        {["garageOrParking", "loungeOrFlatlet", "kitchenOrSolar", "gardenPoolView"].map((field) => (
-          <select
-            key={field}
-            name={field}
-            value={form[field]}
-            onChange={handleChange}
-            className="w-full px-4 py-3 mb-4 text-white border border-gray-600 bg-slate-800 rounded-xl"
-          >
-            <option value="">{field.replace(/([A-Z])/g, " $1")}</option>
-            <option value={field.includes("Or") ? field.split("Or")[0] : field}>{field.includes("Or") ? field.split("Or")[0] : field}</option>
-            <option value={field.includes("Or") ? field.split("Or")[1] : field}>{field.includes("Or") ? field.split("Or")[1] : field}</option>
-          </select>
-        ))}
+        {/* Proper dropdowns */}
+        <label className="block mb-1 font-medium text-white">Garage / Parking</label>
+        <select
+          name="garageOrParking"
+          value={form.garageOrParking}
+          onChange={handleChange}
+          className="w-full px-4 py-3 mb-4 text-white border border-gray-600 bg-slate-800 rounded-xl"
+        >
+          <option value="">Select</option>
+          <option value="Garage">Garage</option>
+          <option value="Parking">Parking</option>
+        </select>
+
+        <label className="block mb-1 font-medium text-white">Lounge / Flatlet</label>
+        <select
+          name="loungeOrFlatlet"
+          value={form.loungeOrFlatlet}
+          onChange={handleChange}
+          className="w-full px-4 py-3 mb-4 text-white border border-gray-600 bg-slate-800 rounded-xl"
+        >
+          <option value="">Select</option>
+          <option value="Lounge">Lounge</option>
+          <option value="Flatlet">Flatlet</option>
+        </select>
+
+        <label className="block mb-1 font-medium text-white">Kitchen / Solar</label>
+        <select
+          name="kitchenOrSolar"
+          value={form.kitchenOrSolar}
+          onChange={handleChange}
+          className="w-full px-4 py-3 mb-4 text-white border border-gray-600 bg-slate-800 rounded-xl"
+        >
+          <option value="">Select</option>
+          <option value="Kitchen">Kitchen</option>
+          <option value="Solar">Solar</option>
+        </select>
+
+        <label className="block mb-1 font-medium text-white">Garden / Pool / View</label>
+        <select
+          name="gardenPoolView"
+          value={form.gardenPoolView}
+          onChange={handleChange}
+          className="w-full px-4 py-3 mb-4 text-white border border-gray-600 bg-slate-800 rounded-xl"
+        >
+          <option value="">Select</option>
+          <option value="Garden">Garden</option>
+          <option value="Pool">Pool</option>
+          <option value="View">View</option>
+        </select>
 
         <label className="block mb-2 font-medium text-white">Cover Image</label>
         <input
@@ -107,6 +143,7 @@ const AddListing = () => {
           className="w-full px-4 py-2 mb-4 text-white border border-gray-600 cursor-pointer bg-slate-800 rounded-xl"
         />
 
+        <label className="block mb-2 font-medium text-white">Select Template</label>
         <select
           name="template"
           value={form.template}
