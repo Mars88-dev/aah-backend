@@ -9,9 +9,6 @@ const Dashboard = () => {
   const [listings, setListings] = useState([]);
   const [videos, setVideos] = useState([]);
   const [savedImages, setSavedImages] = useState([]);
-  const [message, setMessage] = useState("");
-  const [selectedListing, setSelectedListing] = useState(null);
-  const [showFlyerModal, setShowFlyerModal] = useState(false);
   const canvasRef = useRef(null);
   const navigate = useNavigate();
 
@@ -26,19 +23,18 @@ const Dashboard = () => {
 
   const fetchListings = async () => {
     try {
-      const res = await axios.get("https://aah-backend.onrender.com/api/listings", {
+      const res = await axios.get(`${BASE_URL}/api/listings`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setListings(res.data);
     } catch (err) {
       console.error("❌ Error fetching listings:", err);
-      setMessage("❌ Failed to fetch listings.");
     }
   };
 
   const fetchVideos = async () => {
     try {
-      const res = await axios.get("https://aah-backend.onrender.com/api/videos", {
+      const res = await axios.get(`${BASE_URL}/api/videos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setVideos(res.data);
@@ -48,13 +44,10 @@ const Dashboard = () => {
   };
 
   const handleFlyerClick = (listing) => {
-    setSelectedListing(listing);
-    setShowFlyerModal(true);
-  };
-
-  const handleFlyerClose = () => {
-    setShowFlyerModal(false);
-    setSelectedListing(null);
+    const flyerComponent = document.createElement("div");
+    document.body.appendChild(flyerComponent);
+    const Component = () => <FlyerPreview listing={listing} onClose={() => flyerComponent.remove()} />;
+    import("react-dom").then(ReactDOM => ReactDOM.render(<Component />, flyerComponent));
   };
 
   const handleAddNewListing = () => navigate("/add-listing");
@@ -64,13 +57,12 @@ const Dashboard = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this listing?")) {
       try {
-        await axios.delete(`https://aah-backend.onrender.com/api/listings/${id}`, {
+        await axios.delete(`${BASE_URL}/api/listings/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         fetchListings();
       } catch (err) {
         console.error("❌ Error deleting listing:", err);
-        setMessage("❌ Failed to delete listing.");
       }
     }
   };
@@ -78,13 +70,12 @@ const Dashboard = () => {
   const handleDeleteVideo = async (id) => {
     if (window.confirm("Are you sure you want to delete this video?")) {
       try {
-        await axios.delete(`https://aah-backend.onrender.com/api/videos/${id}`, {
+        await axios.delete(`${BASE_URL}/api/videos/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         fetchVideos();
       } catch (err) {
         console.error("❌ Error deleting video:", err);
-        setMessage("❌ Failed to delete video.");
       }
     }
   };
@@ -121,147 +112,95 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="relative min-h-screen text-white bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0a0a23] via-[#1c1c3c] to-black overflow-hidden">
-      {/* Star background animation */}
-      <div className="absolute inset-0 z-0 animate-pulse-slow">
-        {[...Array(200)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-[2px] h-[2px] bg-white rounded-full opacity-40 animate-flicker"
-            style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${2 + Math.random() * 3}s`,
-            }}
-          ></div>
-        ))}
-      </div>
+    <div className="relative min-h-screen text-white bg-gradient-to-b from-black via-[#0a0a23] to-[#1c1c3c] overflow-x-hidden">
+      <canvas ref={canvasRef} className="hidden"></canvas>
 
-      {/* Updated header */}
-      <header className="relative z-20 flex items-center justify-between w-full px-6 py-4 text-white border-b bg-opacity-10 backdrop-blur-md border-white/10">
-        <h1 className="text-2xl font-bold text-white drop-shadow-lg">All About Homes AI</h1>
-        <nav className="space-x-6">
-          <Link to="/login" className="text-lg font-semibold hover:underline">Login</Link>
-          <Link to="/register" className="text-lg font-semibold hover:underline">Register</Link>
-          <Link to="/dashboard" className="text-lg font-semibold hover:underline">Dashboard</Link>
+      <header className="relative z-20 flex flex-col items-center justify-between w-full px-4 py-4 text-white border-b sm:flex-row border-white/10 backdrop-blur-md">
+        <h1 className="text-2xl font-bold drop-shadow-lg">All About Homes AI</h1>
+        <nav className="flex flex-wrap justify-center gap-4 mt-2 sm:mt-0">
+          <Link to="/login" className="hover:underline">Login</Link>
+          <Link to="/register" className="hover:underline">Register</Link>
+          <Link to="/dashboard" className="hover:underline">Dashboard</Link>
         </nav>
       </header>
 
-      <div className="relative z-10 min-h-screen px-4 py-10 sm:px-6">
-        <h2 className="flex items-center justify-center gap-4 mb-10 text-4xl font-extrabold text-center sm:text-5xl text-cyan-300 animate-pulse">
-          🌌 <span>Welcome to Your AI Real Estate Portal</span> 🌌
-        </h2>
+      <div className="relative z-10 min-h-screen px-4 py-6 sm:px-6">
+        <h2 className="mb-6 text-3xl font-bold text-center text-cyan-300">🌌 Welcome to Your AI Real Estate Portal 🌌</h2>
 
-        {/* Action buttons */}
         <div className="grid justify-center grid-cols-2 gap-4 mb-10 sm:grid-cols-4">
-          <button onClick={handleAddNewListing} className="px-4 py-3 font-bold transition shadow-lg bg-gradient-to-r from-green-400 to-green-600 rounded-xl hover:scale-105">
-            ➕ Add Listing
-          </button>
-          <button onClick={handleAddNewVideo} className="px-4 py-3 font-bold transition shadow-lg bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl hover:scale-105">
-            🎥 Add Video
-          </button>
-          <Link to="/description-generator" className="px-4 py-3 font-bold text-center transition shadow-lg bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-xl hover:scale-105">
-            ✍️ AI Description
-          </Link>
-          <Link to="/image-generator" className="px-4 py-3 font-bold text-center transition shadow-lg bg-gradient-to-r from-pink-400 to-pink-600 rounded-xl hover:scale-105">
-            🎨 AI Image
-          </Link>
+          <button onClick={handleAddNewListing} className="px-4 py-3 font-semibold transition bg-green-500 rounded-lg shadow hover:scale-105">➕ Add Listing</button>
+          <button onClick={handleAddNewVideo} className="px-4 py-3 font-semibold transition bg-blue-500 rounded-lg shadow hover:scale-105">🎥 Add Video</button>
+          <Link to="/description-generator" className="px-4 py-3 font-semibold text-center transition bg-yellow-500 rounded-lg shadow hover:scale-105">✍️ AI Description</Link>
+          <Link to="/image-generator" className="px-4 py-3 font-semibold text-center transition bg-pink-500 rounded-lg shadow hover:scale-105">🎨 AI Image</Link>
         </div>
 
-        {/* Listings */}
-        <div className="max-w-6xl mx-auto mb-14">
-          <h3 className="mb-4 text-2xl font-bold text-cyan-200">🏠 Property Listings</h3>
+        {/* Listings Section */}
+        <section className="mb-12">
+          <h3 className="pb-2 mb-4 text-xl font-bold border-b text-cyan-200 border-cyan-600">🏠 Property Listings</h3>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
             {listings.map((listing) => (
-              <div key={listing._id} className="p-5 h-full bg-gradient-to-tr from-black to-slate-900 rounded-2xl shadow-xl hover:scale-[1.02] transition flex flex-col justify-between">
+              <div key={listing._id} className="flex flex-col justify-between p-4 shadow-md bg-slate-900 rounded-xl">
                 {listing.coverImage && (
-                  <img src={`https://aah-backend.onrender.com${listing.coverImage}`} alt="Cover" className="object-cover w-full h-48 mb-3 rounded-xl" />
+                  <img src={`${BASE_URL}${listing.coverImage}`} alt="Cover" className="object-cover w-full h-40 mb-2 rounded-md" />
                 )}
-                <div className="flex-grow">
-                  <h3 className="text-xl font-bold text-cyan-300">{listing.title}</h3>
-                  <p className="font-semibold text-green-300">R {listing.price}</p>
+                <div className="mb-2 text-white">
+                  <h4 className="text-lg font-bold text-cyan-300">{listing.title}</h4>
+                  <p className="font-semibold text-green-400">R {listing.price}</p>
                   <p className="text-sm text-white/80">📍 {listing.location}</p>
-                  <div className="mt-2 space-y-1 text-sm">
-                    {listing.bedrooms && <p>🛏️ Bedrooms: {listing.bedrooms}</p>}
-                    {listing.bathrooms && <p>🛁 Bathrooms: {listing.bathrooms}</p>}
-                    {listing.garages && <p>🚗 Garages: {listing.garages}</p>}
-                    {listing.landSize && <p>📐 Land Size: {listing.landSize}</p>}
-                  </div>
                 </div>
-                <div className="mt-4">
-                  <button onClick={() => handleFlyerClick(listing)} className="w-full py-2 font-semibold text-white bg-purple-600 rounded hover:bg-purple-700">🖨️ Generate Flyer</button>
-                  <div className="flex flex-col justify-between gap-2 mt-3 sm:flex-row">
-                    <button onClick={() => handleEdit(listing._id)} className="w-full py-2 font-medium text-white bg-blue-500 rounded hover:bg-blue-600">✏️ Edit</button>
-                    <button onClick={() => handleDelete(listing._id)} className="w-full py-2 font-medium text-white bg-red-500 rounded hover:bg-red-600">🗑️ Delete</button>
+                <div className="space-y-1 text-sm text-white">
+                  {listing.bedrooms && <p>🛏️ {listing.bedrooms} Bedrooms</p>}
+                  {listing.bathrooms && <p>🛁 {listing.bathrooms} Bathrooms</p>}
+                  {listing.garages && <p>🚗 {listing.garages} Garages</p>}
+                  {listing.landSize && <p>📐 {listing.landSize}</p>}
+                </div>
+                <div className="mt-3 space-y-2">
+                  <button onClick={() => handleFlyerClick(listing)} className="w-full py-2 text-white bg-purple-600 rounded hover:bg-purple-700">🖨️ Generate Flyer</button>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button onClick={() => handleEdit(listing._id)} className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600">✏️ Edit</button>
+                    <button onClick={() => handleDelete(listing._id)} className="w-full py-2 text-white bg-red-500 rounded hover:bg-red-600">🗑️ Delete</button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
         {/* Saved AI Images */}
-      {savedImages.length > 0 && (
-        <div className="max-w-6xl mx-auto mb-14">
-          <h3 className="mb-4 text-2xl font-bold text-cyan-200">🎨 Saved AI Images</h3>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-            {savedImages.map((url, index) => (
-              <div key={index} className="relative flex flex-col h-full p-2 bg-gradient-to-tr from-black to-slate-900 rounded-xl">
-                <img src={url} alt={`AI ${index}`} className="object-cover w-full h-48 rounded-md" />
-                <div className="flex items-center justify-between mt-2">
-                  <button
-                    onClick={() => handleDownloadImage(url)}
-                    className="flex-1 px-3 py-1 mr-1 text-xs text-white bg-blue-600 rounded hover:bg-blue-700"
-                  >
-                    ⬇ Save
-                  </button>
-                  <button
-                    onClick={() => handleDeleteImage(index)}
-                    className="flex-1 px-3 py-1 ml-1 text-xs text-white bg-red-600 rounded hover:bg-red-700"
-                  >
-                    🗑️ Delete
-                  </button>
+        {savedImages.length > 0 && (
+          <section className="mb-12">
+            <h3 className="pb-2 mb-4 text-xl font-bold border-b text-cyan-200 border-cyan-600">🎨 Saved AI Images</h3>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+              {savedImages.map((url, index) => (
+                <div key={index} className="p-2 rounded-lg bg-slate-800">
+                  <img src={url} alt={`AI ${index}`} className="object-cover w-full h-40 rounded-md" />
+                  <div className="flex justify-between mt-2">
+                    <button onClick={() => handleDownloadImage(url)} className="px-3 py-1 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">⬇ Save</button>
+                    <button onClick={() => handleDeleteImage(index)} className="px-3 py-1 text-xs text-white bg-red-600 rounded hover:bg-red-700">🗑️ Delete</button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* Videos */}
-        <div className="max-w-6xl mx-auto mb-14">
-          <h3 className="mb-4 text-2xl font-bold text-cyan-200">🎞️ Uploaded Agent Videos</h3>
+        {/* Uploaded Videos */}
+        <section className="mb-12">
+          <h3 className="pb-2 mb-4 text-xl font-bold border-b text-cyan-200 border-cyan-600">🎞️ Uploaded Agent Videos</h3>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
             {videos.map((video) => (
-              <div key={video._id} className="p-4 shadow-lg bg-slate-800 rounded-xl">
-                <video controls className="w-full rounded-md">
-                  <source src={`https://aah-backend.onrender.com/uploads/videos/${video.filename}`} type="video/mp4" />
+              <div key={video._id} className="p-4 rounded-lg bg-slate-800">
+                <video controls className="w-full rounded">
+                  <source src={`${BASE_URL}/uploads/videos/${video.filename}`} type="video/mp4" />
                 </video>
-                <div className="mt-4 space-y-2">
-                  <a href={`https://aah-backend.onrender.com/uploads/videos/${video.filename}`} download className="block w-full px-4 py-2 text-center text-white bg-green-500 rounded hover:bg-green-600">
-                    ⬇ Download Video
-                  </a>
-                  <button onClick={() => handleDeleteVideo(video._id)} className="block w-full px-4 py-2 text-center text-white bg-red-500 rounded hover:bg-red-600">
-                    🗑️ Delete Video
-                  </button>
+                <div className="mt-3 space-y-2">
+                  <a href={`${BASE_URL}/uploads/videos/${video.filename}`} download className="block w-full py-2 text-center text-white bg-green-500 rounded hover:bg-green-600">⬇ Download Video</a>
+                  <button onClick={() => handleDeleteVideo(video._id)} className="block w-full py-2 text-white bg-red-500 rounded hover:bg-red-600">🗑️ Delete Video</button>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Flyer Preview Modal */}
-        {showFlyerModal && selectedListing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-            <div className="bg-white p-6 rounded-lg w-[95%] max-w-4xl relative">
-              <button onClick={handleFlyerClose} className="absolute text-xl text-black top-2 right-4">
-                ✖
-              </button>
-              <FlyerPreview listing={selectedListing} onClose={handleFlyerClose} />
-            </div>
-          </div>
-        )}
+        </section>
       </div>
     </div>
   );
