@@ -2,18 +2,15 @@ const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
 const Agent = require("../models/Agent");
+const Listing = require("../models/Listing"); // ✅ NEW: Import Listing model
 
 exports.generateFlyer = async (req, res) => {
   try {
-    const { agentId, listingIndex } = req.body;
+    const { listingId } = req.body;
 
-    const agent = await Agent.findById(agentId);
-    if (!agent) return res.status(404).json({ error: "Agent not found" });
-
-    const listing = agent.listings[listingIndex];
+    const listing = await Listing.findById(listingId);
     if (!listing) return res.status(404).json({ error: "Listing not found" });
 
-    // Create flyer HTML
     const htmlContent = `
       <html>
         <head>
@@ -48,27 +45,26 @@ exports.generateFlyer = async (req, res) => {
         </head>
         <body>
           <div class="flyer">
-            <img src="${listing.imageUrls[0]}" />
+            <img src="http://localhost:5000${listing.coverImage}" />
             <h2>${listing.title}</h2>
             <p class="details">💰 ${listing.price}</p>
-            <p class="details">🛏️ ${listing.bedrooms} Bed • 🛁 ${listing.bathrooms} Bath • 🚗 ${listing.garages} Garage</p>
+            <p class="details">🛏️ ${listing.bedrooms} Bed • 🛁 ${listing.bathrooms} Bath • 🚗 ${listing.garageOrParking}</p>
             <p class="details">📍 ${listing.location}</p>
-            <p style="margin-top: 20px;">📞 Contact: ${agent.name} | ${agent.phone} | ${agent.email}</p>
           </div>
         </body>
       </html>
     `;
 
-    // Generate image using Puppeteer
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.setContent(htmlContent);
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+
     const flyerPath = `./uploads/flyer-${Date.now()}.jpg`;
     await page.screenshot({ path: flyerPath, type: "jpeg", fullPage: true });
     await browser.close();
 
     res.download(flyerPath, () => {
-      fs.unlinkSync(flyerPath); // delete after download
+      fs.unlinkSync(flyerPath);
     });
 
   } catch (err) {
@@ -229,4 +225,3 @@ exports.generateMessageFlyer = async (req, res) => {
     res.status(500).json({ error: "Failed to generate message flyer" });
   }
 };
-
