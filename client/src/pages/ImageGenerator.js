@@ -1,3 +1,4 @@
+// ✅ ImageGenerator.js — with full-width watermark overlay + mobile support
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
@@ -35,14 +36,13 @@ const ImageGenerator = () => {
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
-      const logo = new Image();
-      logo.src = "/assets/logo.png";
-      logo.onload = () => {
-        const scale = img.width / 10 / logo.width;
-        const logoWidth = logo.width * scale;
-        const logoHeight = logo.height * scale;
-        ctx.globalAlpha = 0.8;
-        ctx.drawImage(logo, 20, img.height - logoHeight - 20, logoWidth, logoHeight);
+      const watermark = new Image();
+      watermark.src = "/assets/Untitled design (1).png"; // <-- updated overlay path
+      watermark.onload = () => {
+        const scale = img.width / watermark.width;
+        const wmWidth = watermark.width * scale;
+        const wmHeight = watermark.height * scale;
+        ctx.drawImage(watermark, 0, img.height - wmHeight, wmWidth, wmHeight);
         callback(canvas.toDataURL("image/png"));
       };
     };
@@ -93,7 +93,7 @@ const ImageGenerator = () => {
       </div>
 
       <div className="relative z-10 px-4 py-10 sm:px-6">
-        <h1 className="mb-8 text-4xl font-extrabold text-center text-cyan-300 animate-pulse">
+        <h1 className="mb-8 text-3xl font-extrabold text-center sm:text-4xl text-cyan-300 animate-pulse">
           🎨 AI Image Generator (DALL·E 3)
         </h1>
 

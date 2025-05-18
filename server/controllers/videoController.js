@@ -18,10 +18,7 @@ exports.combineVideos = async (req, res) => {
       return res.status(400).json({ error: "No videos uploaded." });
     }
 
-    // ✅ Step 1: Use pre-made intro
     const introPath = path.resolve("assets/intro/video.mp4");
-
-    // ✅ Step 2: Concatenate uploaded clips
     const clipPaths = files.map(file => `file '${path.resolve(file.path)}'`);
     const clipsTxtPath = `uploads/videos/clips-${timestamp}.txt`;
     const stitchedClipsPath = `uploads/videos/stitched-${timestamp}.mp4`;
@@ -39,13 +36,13 @@ exports.combineVideos = async (req, res) => {
         .run();
     });
 
-    // ✅ Step 3: Add watermark (before outro)
     const watermarkedPath = `uploads/videos/watermarked-${timestamp}.mp4`;
+    const watermarkOverlayPath = path.resolve("assets/watermark/full-overlay.png");
     await new Promise((resolve, reject) => {
       ffmpeg()
         .input(stitchedClipsPath)
-        .input("assets/logo.png")
-        .complexFilter("overlay=10:H-h-10") // bottom-left
+        .input(watermarkOverlayPath)
+        .complexFilter("overlay=0:main_h-overlay_h")
         .outputOptions(["-c:v", "libx264", "-preset", "fast", "-crf", "22", "-pix_fmt", "yuv420p"])
         .output(watermarkedPath)
         .on("end", resolve)
@@ -53,7 +50,6 @@ exports.combineVideos = async (req, res) => {
         .run();
     });
 
-    // ✅ Step 4: Merge intro + watermarked
     const mergedListPath = `uploads/videos/merged-list-${timestamp}.txt`;
     const mergedPath = `uploads/videos/merged-${timestamp}.mp4`;
 
@@ -73,21 +69,17 @@ exports.combineVideos = async (req, res) => {
         .run();
     });
 
-    // ✅ Step 5: Append outro (optional)
     let finalPath = mergedPath;
     if (template) {
       const outroPath = path.resolve("assets/outros", template);
       const finalListPath = `uploads/videos/final-list-${timestamp}.txt`;
       finalPath = `uploads/videos/final-${timestamp}.mp4`;
 
-      // 🔍 Debug
-      const finalListContent = [
+      fs.writeFileSync(finalListPath, [
         `file '${path.resolve(mergedPath)}'`,
         `file '${outroPath}'`
-      ].join("\n");
-      fs.writeFileSync(finalListPath, finalListContent);
+      ].join("\n"));
 
-      // 💥 Confirm it exists
       if (!fs.existsSync(finalListPath)) {
         throw new Error(`Final list file not found: ${finalListPath}`);
       }
@@ -106,7 +98,6 @@ exports.combineVideos = async (req, res) => {
       fs.unlinkSync(finalListPath);
     }
 
-    // ✅ Save DB entry
     await new Video({
       agentId,
       filename: path.basename(finalPath),
@@ -114,7 +105,6 @@ exports.combineVideos = async (req, res) => {
       createdAt: new Date(),
     }).save();
 
-    // ✅ Download response + cleanup
     res.download(finalPath, () => {
       fs.unlinkSync(clipsTxtPath);
       fs.unlinkSync(stitchedClipsPath);

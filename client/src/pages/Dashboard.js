@@ -9,6 +9,7 @@ const Dashboard = () => {
   const [listings, setListings] = useState([]);
   const [videos, setVideos] = useState([]);
   const [savedImages, setSavedImages] = useState([]);
+  const [generatingFlyerId, setGeneratingFlyerId] = useState(null);
   const canvasRef = useRef(null);
   const navigate = useNavigate();
 
@@ -43,11 +44,30 @@ const Dashboard = () => {
     }
   };
 
-  const handleFlyerClick = (listing) => {
-    const flyerComponent = document.createElement("div");
-    document.body.appendChild(flyerComponent);
-    const Component = () => <FlyerPreview listing={listing} onClose={() => flyerComponent.remove()} />;
-    import("react-dom").then(ReactDOM => ReactDOM.render(<Component />, flyerComponent));
+  const handleFlyerClick = async (listing) => {
+    try {
+      setGeneratingFlyerId(listing._id);
+      const { default: html2canvas } = await import("html2canvas");
+      const flyer = document.createElement("div");
+      flyer.style.position = "fixed";
+      flyer.style.left = "-9999px";
+      flyer.style.width = "1080px";
+      flyer.style.height = "1080px";
+      flyer.style.backgroundColor = "white";
+      flyer.innerHTML = `<img src='${BASE_URL}${listing.coverImage}' style='position:absolute;top:181.2px;width:1080px;height:480.3px;z-index:1;object-fit:cover'/><img src='/templates/${listing.template || "paula.png"}' style='width:1080px;height:1080px;position:absolute;top:0;left:0;z-index:2' />`;
+      document.body.appendChild(flyer);
+
+      const canvas = await html2canvas(flyer);
+      const link = document.createElement("a");
+      link.download = `${listing.title}-flyer.jpg`;
+      link.href = canvas.toDataURL("image/jpeg", 1.0);
+      link.click();
+      document.body.removeChild(flyer);
+    } catch (err) {
+      console.error("❌ Flyer generation failed:", err);
+    } finally {
+      setGeneratingFlyerId(null);
+    }
   };
 
   const handleAddNewListing = () => navigate("/add-listing");
@@ -112,7 +132,22 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="relative min-h-screen text-white bg-gradient-to-b from-black via-[#0a0a23] to-[#1c1c3c] overflow-x-hidden">
+    <div className="relative min-h-screen text-white overflow-x-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0a0a23] via-[#1c1c3c] to-black">
+      <div className="absolute inset-0 z-0 animate-pulse-slow">
+        {[...Array(200)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-[2px] h-[2px] bg-white rounded-full opacity-40 animate-flicker"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${2 + Math.random() * 3}s`,
+            }}
+          ></div>
+        ))}
+      </div>
+
       <canvas ref={canvasRef} className="hidden"></canvas>
 
       <header className="relative z-20 flex flex-col items-center justify-between w-full px-4 py-4 text-white border-b sm:flex-row border-white/10 backdrop-blur-md">
@@ -125,7 +160,7 @@ const Dashboard = () => {
       </header>
 
       <div className="relative z-10 min-h-screen px-4 py-6 sm:px-6">
-        <h2 className="mb-6 text-3xl font-bold text-center text-cyan-300">🌌 Welcome to Your AI Real Estate Portal 🌌</h2>
+        <h2 className="mb-6 overflow-hidden text-2xl font-bold text-center text-cyan-300 whitespace-nowrap text-ellipsis">🌌 Welcome to Your AI Real Estate Portal 🌌</h2>
 
         <div className="grid justify-center grid-cols-2 gap-4 mb-10 sm:grid-cols-4">
           <button onClick={handleAddNewListing} className="px-4 py-3 font-semibold transition bg-green-500 rounded-lg shadow hover:scale-105">➕ Add Listing</button>
@@ -155,47 +190,17 @@ const Dashboard = () => {
                   {listing.landSize && <p>📐 {listing.landSize}</p>}
                 </div>
                 <div className="mt-3 space-y-2">
-                  <button onClick={() => handleFlyerClick(listing)} className="w-full py-2 text-white bg-purple-600 rounded hover:bg-purple-700">🖨️ Generate Flyer</button>
+                  <button
+                    onClick={() => handleFlyerClick(listing)}
+                    disabled={generatingFlyerId === listing._id}
+                    className="w-full py-2 text-white bg-purple-600 rounded hover:bg-purple-700 disabled:opacity-60"
+                  >
+                    {generatingFlyerId === listing._id ? "🕐 Generating..." : "🖨️ Generate Flyer"}
+                  </button>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <button onClick={() => handleEdit(listing._id)} className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600">✏️ Edit</button>
                     <button onClick={() => handleDelete(listing._id)} className="w-full py-2 text-white bg-red-500 rounded hover:bg-red-600">🗑️ Delete</button>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Saved AI Images */}
-        {savedImages.length > 0 && (
-          <section className="mb-12">
-            <h3 className="pb-2 mb-4 text-xl font-bold border-b text-cyan-200 border-cyan-600">🎨 Saved AI Images</h3>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-              {savedImages.map((url, index) => (
-                <div key={index} className="p-2 rounded-lg bg-slate-800">
-                  <img src={url} alt={`AI ${index}`} className="object-cover w-full h-40 rounded-md" />
-                  <div className="flex justify-between mt-2">
-                    <button onClick={() => handleDownloadImage(url)} className="px-3 py-1 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">⬇ Save</button>
-                    <button onClick={() => handleDeleteImage(index)} className="px-3 py-1 text-xs text-white bg-red-600 rounded hover:bg-red-700">🗑️ Delete</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Uploaded Videos */}
-        <section className="mb-12">
-          <h3 className="pb-2 mb-4 text-xl font-bold border-b text-cyan-200 border-cyan-600">🎞️ Uploaded Agent Videos</h3>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-            {videos.map((video) => (
-              <div key={video._id} className="p-4 rounded-lg bg-slate-800">
-                <video controls className="w-full rounded">
-                  <source src={`${BASE_URL}/uploads/videos/${video.filename}`} type="video/mp4" />
-                </video>
-                <div className="mt-3 space-y-2">
-                  <a href={`${BASE_URL}/uploads/videos/${video.filename}`} download className="block w-full py-2 text-center text-white bg-green-500 rounded hover:bg-green-600">⬇ Download Video</a>
-                  <button onClick={() => handleDeleteVideo(video._id)} className="block w-full py-2 text-white bg-red-500 rounded hover:bg-red-600">🗑️ Delete Video</button>
                 </div>
               </div>
             ))}

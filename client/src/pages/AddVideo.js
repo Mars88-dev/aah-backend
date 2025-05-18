@@ -6,6 +6,7 @@ const AddVideo = () => {
   const [videos, setVideos] = useState([]);
   const [agentTemplate, setAgentTemplate] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleFileChange = (e) => {
@@ -14,12 +15,15 @@ const AddVideo = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setMessage("");
 
     const token = localStorage.getItem("token");
     const agentId = localStorage.getItem("userId");
 
     if (!agentId) {
       setMessage("❌ Agent ID missing from local storage.");
+      setLoading(false);
       return;
     }
 
@@ -55,6 +59,7 @@ const AddVideo = () => {
       console.error("❌ Upload error:", err.response?.data || err.message);
       setMessage("❌ Failed to upload and process videos.");
     }
+    setLoading(false);
   };
 
   return (
@@ -110,9 +115,10 @@ const AddVideo = () => {
 
         <button
           type="submit"
-          className="w-full py-3 font-bold text-white bg-green-500 rounded-xl hover:bg-green-600"
+          className="w-full py-3 font-bold text-white bg-green-500 rounded-xl hover:bg-green-600 disabled:opacity-50"
+          disabled={loading}
         >
-          🚀 Generate Branded Video
+          {loading ? "⏳ Generating Video..." : "🚀 Generate Branded Video"}
         </button>
 
         {message && (

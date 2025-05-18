@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const DescriptionGenerator = () => {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     heading: "",
     bedrooms: "",
@@ -11,12 +13,14 @@ const DescriptionGenerator = () => {
   });
   const [description, setDescription] = useState("");
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleGenerate = async () => {
+    setLoading(true);
     try {
       const res = await axios.post("https://aah-backend.onrender.com/api/generate-description", form);
       setDescription(res.data.description);
@@ -25,6 +29,7 @@ const DescriptionGenerator = () => {
       console.error("❌ Failed to generate description:", err);
       setDescription("❌ Error generating description. Please try again.");
     }
+    setLoading(false);
   };
 
   const handleCopy = () => {
@@ -51,10 +56,17 @@ const DescriptionGenerator = () => {
         ))}
       </div>
 
-      <div className="relative z-10 w-full max-w-2xl p-8 text-white shadow-xl bg-gradient-to-tr from-slate-800 to-slate-700 rounded-2xl">
-        <h2 className="mb-6 text-3xl font-bold text-center text-cyan-300">
+      <div className="relative z-10 w-full max-w-2xl p-4 text-white shadow-xl sm:p-8 bg-gradient-to-tr from-slate-800 to-slate-700 rounded-2xl">
+        <h2 className="mb-4 text-2xl font-bold text-center sm:mb-6 sm:text-3xl text-cyan-300">
           AI Property Description Generator
         </h2>
+
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-4 text-sm font-medium text-white underline hover:text-cyan-300"
+        >
+          ← Back
+        </button>
 
         <input
           type="text"
@@ -104,9 +116,10 @@ const DescriptionGenerator = () => {
 
         <button
           onClick={handleGenerate}
+          disabled={loading}
           className="w-full px-6 py-3 mb-4 font-bold text-white bg-green-500 rounded-xl hover:bg-green-600"
         >
-          🧠 Generate Description
+          {loading ? "Generating..." : "🧠 Generate Description"}
         </button>
 
         {description && (
