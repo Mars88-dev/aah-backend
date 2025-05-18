@@ -25,7 +25,7 @@ app.use(cors({
 
 // ✅ Serve static assets
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/templates", express.static(path.join(__dirname, "client/public/templates")));
+app.use("/templates", express.static(path.join(__dirname, "templates")));
 app.use("/outros", express.static(path.join(__dirname, "assets/outros")));
 
 // ✅ OpenAI setup
