@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
-const puppeteer = require("puppeteer");
+const chromium = require("chrome-aws-lambda");
+const puppeteer = require("puppeteer-core");
 const Listing = require("../models/Listing");
 
 exports.generateFlyer = async (req, res) => {
@@ -101,24 +102,21 @@ exports.generateFlyer = async (req, res) => {
       </html>
     `;
 
-    // ✅ Use puppeteer's built-in Chrome binary (fixes "could not find Chrome" error on Render)
     const browser = await puppeteer.launch({
-      executablePath: puppeteer.executablePath(),
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: chromium.args,
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1080, height: 1080 });
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
-    const flyerPath = `./uploads/flyer-${Date.now()}.jpg`;
+    const flyerPath = `/tmp/flyer-${Date.now()}.jpg`;
     await page.screenshot({ path: flyerPath, type: "jpeg" });
     await browser.close();
 
-    res.download(flyerPath, () => {
-      fs.unlinkSync(flyerPath);
-    });
-
+    res.download(flyerPath);
   } catch (err) {
     console.error("❌ Flyer generation failed:", err);
     res.status(500).json({ error: "Failed to generate flyer" });
