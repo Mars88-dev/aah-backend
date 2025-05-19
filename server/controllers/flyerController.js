@@ -101,7 +101,9 @@ exports.generateFlyer = async (req, res) => {
       </html>
     `;
 
+    // ✅ Use puppeteer's built-in Chrome binary (fixes "could not find Chrome" error on Render)
     const browser = await puppeteer.launch({
+      executablePath: puppeteer.executablePath(),
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
