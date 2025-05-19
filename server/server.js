@@ -4,7 +4,17 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
 const path = require("path");
+const fs = require("fs"); // ✅ Added for folder creation
 const OpenAI = require("openai");
+
+// ✅ Ensure upload folders exist on Render/local
+const uploadDirs = ["uploads", "uploads/temp", "uploads/videos", "uploads/images"];
+uploadDirs.forEach(dir => {
+  const fullPath = path.join(__dirname, dir);
+  if (!fs.existsSync(fullPath)) {
+    fs.mkdirSync(fullPath, { recursive: true });
+  }
+});
 
 const videoRoutes = require("./routes/videoRoutes");
 const agentRoutes = require("./routes/agentRoutes");
