@@ -2,16 +2,19 @@ const fs = require("fs");
 const path = require("path");
 const ffmpeg = require("fluent-ffmpeg");
 const { v4: uuidv4 } = require("uuid");
+const mongoose = require("mongoose");
 const Video = require("../models/Video");
 
 exports.combineVideos = async (req, res) => {
   try {
-    const userId = req.body.userId; // 👈 updated
+    const userId = req.body.userId;
     const outroFile = req.body.outroFile;
 
     if (!userId || userId === "null") {
       return res.status(400).json({ error: "Missing or invalid userId" });
     }
+
+    const userObjectId = new mongoose.Types.ObjectId(userId); // ✅ Ensure proper type
 
     const introPath = path.join(__dirname, "../assets/intro/intro.mp4");
     const outroPath = outroFile ? path.join(__dirname, `../assets/outros/${outroFile}`) : null;
@@ -54,7 +57,7 @@ exports.combineVideos = async (req, res) => {
           .output(finalWithWatermark)
           .on("end", async () => {
             await Video.create({
-              agentId: userId, // still saved as agentId in model if needed
+              agentId: userObjectId, // ✅ Proper ObjectId format
               filename: outputFilename,
               filenameWithOutro: `wm-${outputFilename}`,
             });
@@ -80,4 +83,3 @@ exports.combineVideos = async (req, res) => {
     res.status(500).json({ error: "Unexpected error" });
   }
 };
-
