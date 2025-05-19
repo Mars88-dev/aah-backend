@@ -12,34 +12,42 @@ exports.generateFlyer = async (req, res) => {
     const templatePath = path.join(__dirname, "../templates", listing.template);
     const coverImagePath = path.join(__dirname, `../${listing.coverImage}`);
 
-    // Create canvas
     const canvas = createCanvas(1080, 1080);
     const ctx = canvas.getContext("2d");
 
-    // Load and draw flyer template
-    const template = await loadImage(templatePath);
-    ctx.drawImage(template, 0, 0, 1080, 1080);
-
-    // Load and draw cover image
+    // ✅ Step 1: Draw the cover image first
     const cover = await loadImage(coverImagePath);
     ctx.drawImage(cover, 0, 181.2, 1080, 480.3);
 
-    // Draw text
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "right";
+    // ✅ Step 2: Draw the PNG template on top
+    const template = await loadImage(templatePath);
+    ctx.drawImage(template, 0, 0, 1080, 1080);
+
+    // ✅ Step 3: Title
+    ctx.fillStyle = "#002060";
     ctx.font = "bold 32px Arial";
-    ctx.fillText(`R ${listing.price}`, 1080 - 20, 445.7 + 40);
+    ctx.fillText(listing.title || "New Listing", 20, 597.5 + 40);
 
+    // ✅ Step 4: Price
+    ctx.font = "bold 36px Arial";
     ctx.textAlign = "left";
-    ctx.font = "bold 22px Arial";
-    ctx.fillText(listing.location, 270, 550 + 30);
+    ctx.fillText(`R ${listing.price}`, 769.6, 445.7 + 40);
 
-    ctx.font = "18px Arial";
-    ctx.fillText(`🛏️ ${listing.bedrooms}`, 88.2, 771.8 + 20);
-    ctx.fillText(`🛁 ${listing.bathrooms}`, 88.2, 846.8 + 20);
-    ctx.fillText(`🚗 ${listing.garageOrParking}`, 340.7, 921.9 + 20);
+    // ✅ Step 5: Location
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 32px Arial";
+    ctx.fillText(listing.location, 270, 535 + 38);
 
-    // Export flyer
+    // ✅ Step 6: Features
+    ctx.font = "20px Arial";
+    ctx.fillText(`${listing.bedrooms} Bedrooms`, 88.2, 771.8 + 20);
+    ctx.fillText(`${listing.bathrooms} Bathrooms`, 88.2, 846.8 + 20);
+    ctx.fillText(`${listing.gardenPoolView}`, 88.2, 921.9 + 20);
+    ctx.fillText(`${listing.kitchenOrSolar}`, 340.7, 846.8 + 20);
+    ctx.fillText(`${listing.loungeOrFlatlet}`, 340.7, 771.8 + 20);
+    ctx.fillText(`${listing.garageOrParking}`, 340.7, 921.9 + 20);
+
+    // ✅ Step 7: Save flyer
     const flyerPath = `/tmp/flyer-${Date.now()}.jpg`;
     const out = fs.createWriteStream(flyerPath);
     const stream = canvas.createJPEGStream();
