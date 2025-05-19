@@ -1,126 +1,54 @@
 const fs = require("fs");
 const path = require("path");
-const chromium = require("chrome-aws-lambda");
-const puppeteer = require("puppeteer-core");
+const { createCanvas, loadImage } = require("canvas");
 const Listing = require("../models/Listing");
 
 exports.generateFlyer = async (req, res) => {
   try {
     const { listingId } = req.body;
-
     const listing = await Listing.findById(listingId);
     if (!listing) return res.status(404).json({ error: "Listing not found" });
 
     const templatePath = path.join(__dirname, "../templates", listing.template);
-    const coverImageUrl = `https://aah-backend.onrender.com${listing.coverImage}`;
+    const coverImagePath = path.join(__dirname, `../${listing.coverImage}`);
 
-    const htmlContent = `
-      <html>
-        <head>
-          <style>
-            body {
-              margin: 0;
-              padding: 0;
-              width: 1080px;
-              height: 1080px;
-              position: relative;
-              font-family: Arial, sans-serif;
-              overflow: hidden;
-            }
-            .template {
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 1080px;
-              height: 1080px;
-              z-index: 0;
-            }
-            .cover {
-              position: absolute;
-              top: 181.2px;
-              left: 0;
-              width: 1080px;
-              height: 480.3px;
-              object-fit: cover;
-              z-index: 1;
-            }
-            .price {
-              position: absolute;
-              top: 445.7px;
-              left: 769.6px;
-              width: 321.7px;
-              font-size: 32px;
-              font-weight: bold;
-              color: #fff;
-              text-align: right;
-              z-index: 2;
-            }
-            .location {
-              position: absolute;
-              top: 550px;
-              left: 270px;
-              font-size: 22px;
-              font-weight: bold;
-              color: #fff;
-              z-index: 2;
-            }
-            .bedrooms {
-              position: absolute;
-              top: 771.8px;
-              left: 88.2px;
-              font-size: 18px;
-              color: #fff;
-              z-index: 2;
-            }
-            .bathrooms {
-              position: absolute;
-              top: 846.8px;
-              left: 88.2px;
-              font-size: 18px;
-              color: #fff;
-              z-index: 2;
-            }
-            .garages {
-              position: absolute;
-              top: 921.9px;
-              left: 340.7px;
-              font-size: 18px;
-              color: #fff;
-              z-index: 2;
-            }
-          </style>
-        </head>
-        <body>
-          <img class="template" src="file://${templatePath}" />
-          <img class="cover" src="${coverImageUrl}" />
-          <div class="price">R ${listing.price}</div>
-          <div class="location">${listing.location}</div>
-          <div class="bedrooms">🛏️ ${listing.bedrooms}</div>
-          <div class="bathrooms">🛁 ${listing.bathrooms}</div>
-          <div class="garages">🚗 ${listing.garageOrParking}</div>
-        </body>
-      </html>
-    `;
+    // Create canvas
+    const canvas = createCanvas(1080, 1080);
+    const ctx = canvas.getContext("2d");
 
-    const executablePath = await chromium.executablePath || "/usr/bin/google-chrome";
+    // Load and draw flyer template
+    const template = await loadImage(templatePath);
+    ctx.drawImage(template, 0, 0, 1080, 1080);
 
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath,
-      headless: chromium.headless,
-      ignoreDefaultArgs: ['--disable-extensions'],
-    });
+    // Load and draw cover image
+    const cover = await loadImage(coverImagePath);
+    ctx.drawImage(cover, 0, 181.2, 1080, 480.3);
 
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1080, height: 1080 });
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+    // Draw text
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "right";
+    ctx.font = "bold 32px Arial";
+    ctx.fillText(`R ${listing.price}`, 1080 - 20, 445.7 + 40);
 
+    ctx.textAlign = "left";
+    ctx.font = "bold 22px Arial";
+    ctx.fillText(listing.location, 270, 550 + 30);
+
+    ctx.font = "18px Arial";
+    ctx.fillText(`🛏️ ${listing.bedrooms}`, 88.2, 771.8 + 20);
+    ctx.fillText(`🛁 ${listing.bathrooms}`, 88.2, 846.8 + 20);
+    ctx.fillText(`🚗 ${listing.garageOrParking}`, 340.7, 921.9 + 20);
+
+    // Export flyer
     const flyerPath = `/tmp/flyer-${Date.now()}.jpg`;
-    await page.screenshot({ path: flyerPath, type: "jpeg" });
-    await browser.close();
+    const out = fs.createWriteStream(flyerPath);
+    const stream = canvas.createJPEGStream();
+    stream.pipe(out);
 
-    res.download(flyerPath, () => {
-      if (fs.existsSync(flyerPath)) fs.unlinkSync(flyerPath);
+    out.on("finish", () => {
+      res.download(flyerPath, () => {
+        if (fs.existsSync(flyerPath)) fs.unlinkSync(flyerPath);
+      });
     });
 
   } catch (err) {
