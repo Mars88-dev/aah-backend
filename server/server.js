@@ -15,9 +15,9 @@ const authRoutes = require("./routes/authRoutes");
 const app = express();
 app.use(express.json());
 
-// ✅ CORS for both local and deployed frontend
+// ✅ CORS: Production only
 app.use(cors({
-  origin: ["http://localhost:3000", "https://aah-frontend.onrender.com"],
+  origin: "https://aah-frontend.onrender.com",
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
   exposedHeaders: ["Content-Disposition"],
@@ -28,12 +28,12 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/templates", express.static(path.join(__dirname, "client/public/templates")));
 app.use("/outros", express.static(path.join(__dirname, "assets/outros")));
 
-// ✅ OpenAI Initialization
+// ✅ OpenAI Init
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ✅ Description Generator Route
+// ✅ Description Generator
 app.post("/api/generate-description", async (req, res) => {
   const { heading, bedrooms, bathrooms, location, features } = req.body;
 
@@ -72,7 +72,7 @@ Only output the description (no headings or formatting).
   }
 });
 
-// ✅ DALL·E Image Generator
+// ✅ Image Generator (DALL·E 3)
 app.post("/api/generate-image", async (req, res) => {
   const { prompt } = req.body;
 
@@ -91,7 +91,6 @@ app.post("/api/generate-image", async (req, res) => {
       return res.status(500).json({ error: "No image URL returned from OpenAI." });
     }
 
-    // Download and convert to base64
     const imageRes = await axios.get(imageUrl, { responseType: "arraybuffer" });
     const base64Image = `data:image/png;base64,${Buffer.from(imageRes.data).toString("base64")}`;
 
@@ -111,7 +110,7 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ API Routes
+// ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/agents", agentRoutes);
 app.use("/api/listings", listingRoutes);
