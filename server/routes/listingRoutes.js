@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const Listing = require("../models/Listing");
-const authenticateToken = require("../middleware/auth");
+const { requireAuth } = require("../middleware/authMiddleware"); // ✅ Corrected import
 
 // ✅ Multer storage config
 const storage = multer.diskStorage({
@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ✅ Create new listing with uploaded image
-router.post("/", authenticateToken, upload.single("coverImage"), async (req, res) => {
+router.post("/", requireAuth, upload.single("coverImage"), async (req, res) => {
   try {
     const newListing = new Listing({
       ...req.body,
@@ -35,7 +35,7 @@ router.post("/", authenticateToken, upload.single("coverImage"), async (req, res
 });
 
 // ✅ Get all listings
-router.get("/", authenticateToken, async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const listings = await Listing.find();
     res.status(200).json(listings);
@@ -45,7 +45,7 @@ router.get("/", authenticateToken, async (req, res) => {
 });
 
 // ✅ Get single listing by ID
-router.get("/:id", authenticateToken, async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ error: "Listing not found" });
@@ -56,7 +56,7 @@ router.get("/:id", authenticateToken, async (req, res) => {
 });
 
 // ✅ Update listing with optional new image
-router.put("/:id", authenticateToken, upload.single("coverImage"), async (req, res) => {
+router.put("/:id", requireAuth, upload.single("coverImage"), async (req, res) => {
   try {
     const update = {
       ...req.body,
@@ -75,7 +75,7 @@ router.put("/:id", authenticateToken, upload.single("coverImage"), async (req, r
 });
 
 // ✅ Delete listing
-router.delete("/:id", authenticateToken, async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const result = await Listing.findByIdAndDelete(req.params.id);
     if (!result) return res.status(404).json({ error: "Listing not found" });
