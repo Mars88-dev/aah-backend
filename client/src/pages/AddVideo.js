@@ -17,10 +17,10 @@ const AddVideo = () => {
     try {
       const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user"));
-      const agentId = user?._id;
+      const userId = user?._id;
 
-      if (!agentId) {
-        setMessage("❌ Agent ID is missing. Please log in again.");
+      if (!userId) {
+        setMessage("❌ User not logged in. Please log in again.");
         return;
       }
 
@@ -29,7 +29,7 @@ const AddVideo = () => {
         formData.append("clips", clips[i]);
       }
       formData.append("outroFile", outro);
-      formData.append("agentId", agentId);
+      formData.append("userId", userId); // 👈 Now called userId
 
       const res = await axios.post("https://aah-backend.onrender.com/api/videos/combine", formData, {
         responseType: "blob",

@@ -4,7 +4,7 @@ const videoSchema = new mongoose.Schema(
   {
     agentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Agent",
+      ref: "User", // ✅ Changed from "Agent"
       required: true,
     },
     filename: {

@@ -6,11 +6,11 @@ const Video = require("../models/Video");
 
 exports.combineVideos = async (req, res) => {
   try {
-    const agentId = req.body.agentId;
+    const userId = req.body.userId; // 👈 updated
     const outroFile = req.body.outroFile;
 
-    if (!agentId || agentId === "null") {
-      return res.status(400).json({ error: "Missing or invalid agentId" });
+    if (!userId || userId === "null") {
+      return res.status(400).json({ error: "Missing or invalid userId" });
     }
 
     const introPath = path.join(__dirname, "../assets/intro/intro.mp4");
@@ -54,7 +54,7 @@ exports.combineVideos = async (req, res) => {
           .output(finalWithWatermark)
           .on("end", async () => {
             await Video.create({
-              agentId,
+              agentId: userId, // still saved as agentId in model if needed
               filename: outputFilename,
               filenameWithOutro: `wm-${outputFilename}`,
             });
