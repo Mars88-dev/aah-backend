@@ -3,9 +3,9 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const Listing = require("../models/Listing");
-const { requireAuth } = require("../middleware/authMiddleware"); // ✅ Corrected import
+const { requireAuth } = require("../middleware/authMiddleware"); // Correct import
 
-// ✅ Multer storage config
+// ✅ Multer config
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/images");
@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// ✅ Create new listing with uploaded image
+// ✅ Create a listing
 router.post("/", requireAuth, upload.single("coverImage"), async (req, res) => {
   try {
     const newListing = new Listing({
@@ -44,7 +44,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-// ✅ Get single listing by ID
+// ✅ Get one listing
 router.get("/:id", requireAuth, async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
@@ -55,7 +55,7 @@ router.get("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// ✅ Update listing with optional new image
+// ✅ Update listing
 router.put("/:id", requireAuth, upload.single("coverImage"), async (req, res) => {
   try {
     const update = {

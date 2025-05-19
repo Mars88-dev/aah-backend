@@ -15,7 +15,7 @@ const authRoutes = require("./routes/authRoutes");
 const app = express();
 app.use(express.json());
 
-// ✅ CORS: Production only
+// ✅ CORS config for frontend on Render
 app.use(cors({
   origin: "https://aah-frontend.onrender.com",
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -23,56 +23,49 @@ app.use(cors({
   exposedHeaders: ["Content-Disposition"],
 }));
 
-// ✅ Serve static assets
+// ✅ Static folders
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/templates", express.static(path.join(__dirname, "client/public/templates")));
+app.use("/templates", express.static(path.join(__dirname, "templates")));
 app.use("/outros", express.static(path.join(__dirname, "assets/outros")));
+app.use("/intro", express.static(path.join(__dirname, "assets/intro")));
+app.use("/assets", express.static(path.join(__dirname, "assets")));
 
-// ✅ OpenAI Init
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// ✅ OpenAI
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ✅ Description Generator
+// ✅ AI Description Generator
 app.post("/api/generate-description", async (req, res) => {
   const { heading, bedrooms, bathrooms, location, features } = req.body;
 
-  const fullPrompt = `
+  const prompt = `
 You are a South African real estate assistant.
-Write a high-quality listing description for a property with the following details:
+Write a high-quality listing description for a property with:
 - Heading: ${heading}
 - Bedrooms: ${bedrooms}
 - Bathrooms: ${bathrooms}
 - Location: ${location}
 - Features: ${features}
 
-Keep the tone professional yet engaging. Use vivid, descriptive language, highlight lifestyle benefits, and avoid repeating keywords.
-Only output the description (no headings or formatting).
-  `;
+Keep it professional, engaging, and appealing to buyers.
+`;
 
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: fullPrompt }],
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
       max_tokens: 300,
     });
 
-    if (!response || !response.choices || !response.choices[0].message) {
-      console.error("❌ Unexpected OpenAI response:", response);
-      return res.status(500).json({ description: "Unexpected OpenAI response format." });
-    }
-
-    const description = response.choices[0].message.content.trim();
+    const description = response.choices[0]?.message?.content?.trim() || "No description generated.";
     res.json({ description });
-
   } catch (err) {
-    console.error("❌ OpenAI API Error:", err?.response?.data || err.message);
-    res.status(500).json({ description: "Failed to generate description." });
+    console.error("❌ Description generation error:", err);
+    res.status(500).json({ error: "Failed to generate description." });
   }
 });
 
-// ✅ Image Generator (DALL·E 3)
+// ✅ AI Image Generator (with watermark)
 app.post("/api/generate-image", async (req, res) => {
   const { prompt } = req.body;
 
@@ -87,21 +80,35 @@ app.post("/api/generate-image", async (req, res) => {
 
     const imageUrl = response?.data?.[0]?.url;
     if (!imageUrl) {
-      console.error("❌ No image URL returned from OpenAI.");
       return res.status(500).json({ error: "No image URL returned from OpenAI." });
     }
 
     const imageRes = await axios.get(imageUrl, { responseType: "arraybuffer" });
-    const base64Image = `data:image/png;base64,${Buffer.from(imageRes.data).toString("base64")}`;
+    const imageBuffer = Buffer.from(imageRes.data, "binary");
 
+    const { createCanvas, loadImage } = require("canvas");
+    const canvas = createCanvas(1024, 1024);
+    const ctx = canvas.getContext("2d");
+
+    const mainImage = await loadImage(imageBuffer);
+    ctx.drawImage(mainImage, 0, 0);
+
+    const watermark = await loadImage(path.join(__dirname, "assets/logo.png"));
+    const wmHeight = 120;
+    const wmWidth = 1024;
+    ctx.globalAlpha = 0.9;
+    ctx.drawImage(watermark, 0, canvas.height - wmHeight, wmWidth, wmHeight);
+
+    const base64Image = canvas.toDataURL("image/png");
     res.json({ image: base64Image });
+
   } catch (err) {
     console.error("❌ OpenAI Image Generation Error:", err.response?.data || err.message);
     res.status(500).json({ image: null, error: "Failed to generate image." });
   }
 });
 
-// ✅ MongoDB Connection
+// ✅ MongoDB
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -110,13 +117,13 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ Routes
+// ✅ All API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/agents", agentRoutes);
 app.use("/api/listings", listingRoutes);
 app.use("/api/flyers", flyerRoutes);
 app.use("/api/videos", videoRoutes);
 
-// ✅ Start Server
+// ✅ Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

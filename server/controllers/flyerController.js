@@ -10,7 +10,6 @@ exports.generateFlyer = async (req, res) => {
     const listing = await Listing.findById(listingId);
     if (!listing) return res.status(404).json({ error: "Listing not found" });
 
-    // ✅ Correct path to server-side template
     const templatePath = path.join(__dirname, "../templates", listing.template);
     const coverImageUrl = `https://aah-backend.onrender.com${listing.coverImage}`;
 
@@ -25,6 +24,7 @@ exports.generateFlyer = async (req, res) => {
               height: 1080px;
               position: relative;
               font-family: Arial, sans-serif;
+              overflow: hidden;
             }
             .template {
               position: absolute;
@@ -51,8 +51,8 @@ exports.generateFlyer = async (req, res) => {
               font-size: 32px;
               font-weight: bold;
               color: #fff;
-              z-index: 2;
               text-align: right;
+              z-index: 2;
             }
             .location {
               position: absolute;
@@ -104,6 +104,7 @@ exports.generateFlyer = async (req, res) => {
     const browser = await puppeteer.launch({
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+
     const page = await browser.newPage();
     await page.setViewport({ width: 1080, height: 1080 });
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });

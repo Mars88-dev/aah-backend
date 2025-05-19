@@ -1,110 +1,68 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
 const AddVideo = () => {
-  const [videos, setVideos] = useState([]);
-  const [agentTemplate, setAgentTemplate] = useState("");
+  const [clips, setClips] = useState([]);
+  const [outro, setOutro] = useState("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleFileChange = (e) => {
-    setVideos([...e.target.files]);
+    setClips(e.target.files);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage("");
-
-    const token = localStorage.getItem("token");
-    const agentId = localStorage.getItem("userId");
-
-    if (!agentId) {
-      setMessage("❌ Agent ID missing from local storage.");
-      setLoading(false);
-      return;
-    }
-
-    const formData = new FormData();
-    videos.forEach((video) => formData.append("videos", video));
-    formData.append("agentId", agentId);
-    if (agentTemplate) formData.append("template", agentTemplate);
+    setMessage("⏳ Generating video...");
 
     try {
-      const res = await axios.post(
-        "https://aah-backend.onrender.com/api/videos/combine",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-          responseType: "blob",
-        }
-      );
+      const token = localStorage.getItem("token");
+      const agentId = localStorage.getItem("agentId");
 
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const formData = new FormData();
+      for (let i = 0; i < clips.length; i++) {
+        formData.append("clips", clips[i]);
+      }
+      formData.append("outroFile", outro);
+      formData.append("agentId", agentId);
+
+      const res = await axios.post("https://aah-backend.onrender.com/api/videos/combine", formData, {
+        responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const blob = new Blob([res.data], { type: "video/mp4" });
       const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "final-highlight.mp4");
-      document.body.appendChild(link);
+      link.href = window.URL.createObjectURL(blob);
+      link.download = "listing-video.mp4";
       link.click();
-      document.body.removeChild(link);
 
-      setMessage("✅ Video generated successfully!");
-      setTimeout(() => navigate("/dashboard"), 700);
+      setMessage("✅ Video downloaded successfully!");
     } catch (err) {
-      console.error("❌ Upload error:", err.response?.data || err.message);
-      setMessage("❌ Failed to upload and process videos.");
+      console.error("❌ Error generating video:", err);
+      setMessage("❌ Failed to generate video.");
     }
-    setLoading(false);
   };
 
   return (
-    <div className="relative flex items-center justify-center min-h-screen px-4 py-10 text-white bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0a0a23] via-[#1c1c3c] to-black overflow-hidden">
-      {/* Starry background */}
-      <div className="absolute inset-0 z-0 animate-pulse-slow">
-        {[...Array(150)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-[2px] h-[2px] bg-white rounded-full opacity-40 animate-flicker"
-            style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${2 + Math.random() * 3}s`,
-            }}
-          ></div>
-        ))}
-      </div>
-
-      <form
-        onSubmit={handleSubmit}
-        className="relative z-10 w-full max-w-xl p-8 shadow-2xl bg-gradient-to-tr from-slate-800 to-slate-700 rounded-2xl"
-      >
-        <h2 className="mb-6 text-3xl font-bold text-center text-cyan-300">
-          🎬 Upload Video Clips
-        </h2>
-
+    <div className="max-w-xl p-8 mx-auto text-white">
+      <h1 className="mb-6 text-3xl font-bold">Add New Video</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="file"
-          accept="video/*"
+          accept="video/mp4"
           multiple
           onChange={handleFileChange}
-          className="w-full px-4 py-2 mb-4 text-white border rounded-xl bg-slate-700 border-slate-600"
+          className="block w-full text-white"
         />
 
-        <label className="block mb-2 font-semibold text-white">
-          Attach Agent Outro Template (Optional)
-        </label>
         <select
-          value={agentTemplate}
-          onChange={(e) => setAgentTemplate(e.target.value)}
-          className="w-full px-4 py-3 mb-6 text-white border bg-slate-700 border-slate-600 rounded-xl"
+          value={outro}
+          onChange={(e) => setOutro(e.target.value)}
+          className="w-full px-4 py-2 rounded bg-slate-800"
         >
-          <option value="">-- No Outro --</option>
+          <option value="">Select Outro (Optional)</option>
           <option value="paula.mp4">Paula</option>
           <option value="mignon.mp4">Mignon</option>
           <option value="richard.mp4">Richard</option>
@@ -113,17 +71,11 @@ const AddVideo = () => {
           <option value="victoria.mp4">Victoria</option>
         </select>
 
-        <button
-          type="submit"
-          className="w-full py-3 font-bold text-white bg-green-500 rounded-xl hover:bg-green-600 disabled:opacity-50"
-          disabled={loading}
-        >
-          {loading ? "⏳ Generating Video..." : "🚀 Generate Branded Video"}
+        <button type="submit" className="w-full py-3 font-bold text-white bg-blue-500 rounded hover:bg-blue-600">
+          Generate Video
         </button>
 
-        {message && (
-          <p className="mt-4 font-medium text-center text-pink-300">{message}</p>
-        )}
+        {message && <p className="mt-2 text-center">{message}</p>}
       </form>
     </div>
   );
