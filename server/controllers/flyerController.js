@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
-const Listing = require("../models/Listing"); // ✅ Required fix
+const Listing = require("../models/Listing");
 
 exports.generateFlyer = async (req, res) => {
   try {
@@ -10,69 +10,114 @@ exports.generateFlyer = async (req, res) => {
     const listing = await Listing.findById(listingId);
     if (!listing) return res.status(404).json({ error: "Listing not found" });
 
-    const imageUrl = `https://aah-backend.onrender.com${listing.coverImage || ""}`;
+    // ✅ Correct path to server-side template
+    const templatePath = path.join(__dirname, "../templates", listing.template);
+    const coverImageUrl = `https://aah-backend.onrender.com${listing.coverImage}`;
+
     const htmlContent = `
       <html>
         <head>
           <style>
             body {
-              font-family: Arial;
-              padding: 20px;
-              background: #f2f2f2;
+              margin: 0;
+              padding: 0;
+              width: 1080px;
+              height: 1080px;
+              position: relative;
+              font-family: Arial, sans-serif;
             }
-            .flyer {
-              background: white;
-              border-radius: 10px;
-              padding: 20px;
-              max-width: 800px;
-              margin: auto;
-              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            .template {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 1080px;
+              height: 1080px;
+              z-index: 0;
             }
-            img {
-              width: 100%;
-              height: auto;
-              border-radius: 10px;
+            .cover {
+              position: absolute;
+              top: 181.2px;
+              left: 0;
+              width: 1080px;
+              height: 480.3px;
+              object-fit: cover;
+              z-index: 1;
             }
-            h2 {
-              margin-top: 10px;
-              color: #333;
+            .price {
+              position: absolute;
+              top: 445.7px;
+              left: 769.6px;
+              width: 321.7px;
+              font-size: 32px;
+              font-weight: bold;
+              color: #fff;
+              z-index: 2;
+              text-align: right;
             }
-            .details {
-              margin-top: 10px;
-              font-size: 16px;
-              color: #555;
+            .location {
+              position: absolute;
+              top: 550px;
+              left: 270px;
+              font-size: 22px;
+              font-weight: bold;
+              color: #fff;
+              z-index: 2;
+            }
+            .bedrooms {
+              position: absolute;
+              top: 771.8px;
+              left: 88.2px;
+              font-size: 18px;
+              color: #fff;
+              z-index: 2;
+            }
+            .bathrooms {
+              position: absolute;
+              top: 846.8px;
+              left: 88.2px;
+              font-size: 18px;
+              color: #fff;
+              z-index: 2;
+            }
+            .garages {
+              position: absolute;
+              top: 921.9px;
+              left: 340.7px;
+              font-size: 18px;
+              color: #fff;
+              z-index: 2;
             }
           </style>
         </head>
         <body>
-          <div class="flyer">
-            <img src="${imageUrl}" />
-            <h2>${listing.title}</h2>
-            <p class="details">💰 ${listing.price}</p>
-            <p class="details">🛏️ ${listing.bedrooms} Bed • 🛁 ${listing.bathrooms} Bath • 🚗 ${listing.garageOrParking}</p>
-            <p class="details">📍 ${listing.location}</p>
-          </div>
+          <img class="template" src="file://${templatePath}" />
+          <img class="cover" src="${coverImageUrl}" />
+          <div class="price">R ${listing.price}</div>
+          <div class="location">${listing.location}</div>
+          <div class="bedrooms">🛏️ ${listing.bedrooms}</div>
+          <div class="bathrooms">🛁 ${listing.bathrooms}</div>
+          <div class="garages">🚗 ${listing.garageOrParking}</div>
         </body>
       </html>
     `;
 
     const browser = await puppeteer.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox"], // ✅ Important for Render
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
-
     const page = await browser.newPage();
+    await page.setViewport({ width: 1080, height: 1080 });
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
     const flyerPath = `./uploads/flyer-${Date.now()}.jpg`;
-    await page.screenshot({ path: flyerPath, type: "jpeg", fullPage: true });
+    await page.screenshot({ path: flyerPath, type: "jpeg" });
     await browser.close();
 
     res.download(flyerPath, () => {
-      fs.unlinkSync(flyerPath); // Cleanup after download
+      fs.unlinkSync(flyerPath);
     });
 
   } catch (err) {
-    console.error("❌ Flyer Generation Error:", err);
+    console.error("❌ Flyer generation failed:", err);
     res.status(500).json({ error: "Failed to generate flyer" });
   }
 };
