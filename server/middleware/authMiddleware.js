@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 
-exports.requireAuth = (req, res, next) => {
+exports.protect = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -11,7 +11,7 @@ exports.requireAuth = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = decoded; // ✅ attaches decoded user (e.g., _id) to req.user
     next();
   } catch (err) {
     return res.status(401).json({ error: "Invalid token" });

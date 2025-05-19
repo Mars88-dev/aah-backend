@@ -3,25 +3,28 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const { combineVideos } = require("../controllers/videoController");
-const { requireAuth } = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
 
-// ✅ Multer config for .mp4 uploads
+// ✅ Storage engine for uploaded clips and outro
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+  destination: (req, file, cb) => {
     cb(null, "uploads/temp");
   },
-  filename: function (req, file, cb) {
+  filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
   },
 });
 
 const upload = multer({ storage });
 
-// ✅ POST /api/videos/combine
+// ✅ POST /api/videos/combine - Requires login
 router.post(
   "/combine",
-  requireAuth,
-  upload.fields([{ name: "clips", maxCount: 10 }]),
+  protect,
+  upload.fields([
+    { name: "clips", maxCount: 10 },
+    { name: "outroFile", maxCount: 1 },
+  ]),
   combineVideos
 );
 
