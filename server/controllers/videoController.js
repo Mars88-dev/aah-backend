@@ -14,11 +14,13 @@ exports.combineVideos = async (req, res) => {
       return res.status(400).json({ error: "Missing or invalid userId" });
     }
 
-    const userObjectId = new mongoose.Types.ObjectId(userId); // ✅ Ensure proper type
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     const introPath = path.join(__dirname, "../assets/intro/intro.mp4");
-    const outroPath = outroFile ? path.join(__dirname, `../assets/outros/${outroFile}`) : null;
-    const watermarkPath = path.join(__dirname, "../assets/logo.png");
+    const outroPath = outroFile
+      ? path.join(__dirname, `../assets/outros/${outroFile}`)
+      : null;
+    const watermarkPath = path.join(__dirname, "../assets/video-watermark.png"); // ✅ Update path
 
     const uploadedVideos = req.files["clips"];
     if (!uploadedVideos || uploadedVideos.length === 0) {
@@ -30,50 +32,63 @@ exports.combineVideos = async (req, res) => {
 
     const allClips = [];
     if (fs.existsSync(introPath)) allClips.push(introPath);
-    allClips.push(...uploadedVideos.map(file => file.path));
+    allClips.push(...uploadedVideos.map((file) => file.path));
     if (outroPath && fs.existsSync(outroPath)) allClips.push(outroPath);
 
     const txtListPath = path.join(tempDir, `${uuidv4()}.txt`);
-    const listFileContent = allClips.map(p => `file '${path.resolve(p)}'`).join("\n");
+    const listFileContent = allClips
+      .map((p) => `file '${path.resolve(p)}'`)
+      .join("\n");
     fs.writeFileSync(txtListPath, listFileContent);
 
     const outputFilename = `video-${Date.now()}.mp4`;
     const outputPath = path.join("uploads/videos", outputFilename);
 
+    // Step 1: Combine all clips (intro + uploaded + outro)
     ffmpeg()
       .input(txtListPath)
       .inputOptions(["-f", "concat", "-safe", "0"])
       .outputOptions("-c", "copy")
       .on("end", () => {
-        const finalWithWatermark = path.join("uploads/videos", `wm-${outputFilename}`);
+        const finalWithWatermark = path.join(
+          "uploads/videos",
+          `wm-${outputFilename}`
+        );
+
+        // Step 2: Overlay watermark across bottom
         ffmpeg(outputPath)
           .input(watermarkPath)
           .complexFilter([
             {
               filter: "overlay",
-              options: { x: 20, y: "main_h-overlay_h-20" },
+              options: {
+                x: 0,
+                y: "main_h-overlay_h", // ✅ align at bottom flush
+              },
             },
           ])
           .output(finalWithWatermark)
           .on("end", async () => {
+            // Step 3: Save video to DB
             await Video.create({
-              agentId: userObjectId, // ✅ Proper ObjectId format
+              agentId: userObjectId,
               filename: outputFilename,
               filenameWithOutro: `wm-${outputFilename}`,
             });
 
+            // Step 4: Send result & cleanup
             res.download(finalWithWatermark, () => {
               fs.unlinkSync(txtListPath);
               fs.unlinkSync(outputPath);
             });
           })
-          .on("error", err => {
+          .on("error", (err) => {
             console.error("❌ Error adding watermark:", err);
             res.status(500).json({ error: "Failed to add watermark" });
           })
           .run();
       })
-      .on("error", err => {
+      .on("error", (err) => {
         console.error("❌ Error combining videos:", err);
         res.status(500).json({ error: "Failed to combine videos" });
       })
