@@ -42,9 +42,10 @@ const ImageGenerator = () => {
         const watermark = new window.Image();
         watermark.src = "/assets/Untitled design (1).png";
         watermark.onload = () => {
-          const scale = img.width / watermark.width;
+          // Keep original watermark proportions but match width to canvas
+          const ratio = watermark.height / watermark.width;
           const wmWidth = img.width;
-          const wmHeight = watermark.height * scale;
+          const wmHeight = wmWidth * ratio;
           ctx.drawImage(watermark, 0, img.height - wmHeight, wmWidth, wmHeight);
           resolve(canvas.toDataURL("image/png"));
         };
@@ -59,7 +60,9 @@ const ImageGenerator = () => {
     const link = document.createElement("a");
     link.href = watermarked;
     link.download = `ai-image-${Date.now()}.png`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   };
 
   const handleSave = async () => {
@@ -146,7 +149,10 @@ const ImageGenerator = () => {
             <h3 className="mb-4 text-2xl font-bold text-cyan-200">🖼️ Saved AI Images</h3>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {savedImages.map((url, index) => (
-                <div key={index} className="relative flex flex-col h-full p-2 bg-gradient-to-tr from-black to-slate-900 rounded-xl">
+                <div
+                  key={index}
+                  className="relative flex flex-col h-full p-2 bg-gradient-to-tr from-black to-slate-900 rounded-xl"
+                >
                   <img src={url} alt={`AI ${index}`} className="object-cover w-full h-48 rounded-md" />
                   <button
                     onClick={() => handleDelete(index)}

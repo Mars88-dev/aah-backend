@@ -44,7 +44,7 @@ exports.combineVideos = async (req, res) => {
     const outputFilename = `video-${Date.now()}.mp4`;
     const outputPath = path.join("uploads/videos", outputFilename);
 
-    // Step 1: Combine all clips
+    // Step 1: Combine all clips (intro + uploaded + outro)
     ffmpeg()
       .input(txtListPath)
       .inputOptions(["-f", "concat", "-safe", "0"])
@@ -55,30 +55,28 @@ exports.combineVideos = async (req, res) => {
           `wm-${outputFilename}`
         );
 
-        // Step 2: Add scaled watermark flush at bottom
+        // Step 2: Overlay scaled watermark flush at bottom
         ffmpeg(outputPath)
           .input(watermarkPath)
+          .inputOptions("-loop 1")
           .complexFilter([
             {
               filter: "scale2ref",
-              options: {
-                w: "main_w",
-                h: -1,
-              },
+              options: "iw:ih",
               inputs: "[1][0]",
-              outputs: "[wm][vid]",
+              outputs: "[wm][base]"
             },
             {
               filter: "overlay",
               options: {
                 x: 0,
-                y: "main_h-overlay_h",
+                y: "main_h-overlay_h"
               },
-              inputs: "[vid][wm]",
-              outputs: "final",
-            },
+              inputs: "[base][wm]",
+              outputs: "final"
+            }
           ])
-          .outputOptions("-map", "[final]")
+          .outputOptions(["-map", "[final]", "-preset", "veryfast"])
           .output(finalWithWatermark)
           .on("end", async () => {
             await Video.create({
