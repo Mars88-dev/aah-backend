@@ -102,10 +102,11 @@ exports.generateFlyer = async (req, res) => {
       </html>
     `;
 
+    // ✅ Launch Puppeteer with Chrome from chrome-aws-lambda
     const browser = await puppeteer.launch({
       args: chromium.args,
       executablePath: await chromium.executablePath,
-      headless: chromium.headless,
+      headless: true,
     });
 
     const page = await browser.newPage();
@@ -116,7 +117,11 @@ exports.generateFlyer = async (req, res) => {
     await page.screenshot({ path: flyerPath, type: "jpeg" });
     await browser.close();
 
-    res.download(flyerPath);
+    res.download(flyerPath, (err) => {
+      if (!err && fs.existsSync(flyerPath)) {
+        fs.unlinkSync(flyerPath); // Clean up after download
+      }
+    });
   } catch (err) {
     console.error("❌ Flyer generation failed:", err);
     res.status(500).json({ error: "Failed to generate flyer" });
