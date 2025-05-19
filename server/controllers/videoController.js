@@ -15,7 +15,6 @@ exports.combineVideos = async (req, res) => {
     }
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
-
     const introPath = path.join(__dirname, "../assets/intro/intro.mp4");
     const outroPath = outroFile
       ? path.join(__dirname, `../assets/outros/${outroFile}`)
@@ -36,47 +35,37 @@ exports.combineVideos = async (req, res) => {
     if (outroPath && fs.existsSync(outroPath)) allClips.push(outroPath);
 
     const txtListPath = path.join(tempDir, `${uuidv4()}.txt`);
-    const listFileContent = allClips
-      .map((p) => `file '${path.resolve(p)}'`)
-      .join("\n");
+    const listFileContent = allClips.map(p => `file '${path.resolve(p)}'`).join("\n");
     fs.writeFileSync(txtListPath, listFileContent);
 
     const outputFilename = `video-${Date.now()}.mp4`;
     const outputPath = path.join("uploads/videos", outputFilename);
 
-    // Step 1: Combine all clips (intro + uploaded + outro)
+    // Step 1: Combine all clips
     ffmpeg()
       .input(txtListPath)
       .inputOptions(["-f", "concat", "-safe", "0"])
       .outputOptions("-c", "copy")
       .on("end", () => {
-        const finalWithWatermark = path.join(
-          "uploads/videos",
-          `wm-${outputFilename}`
-        );
+        const finalWithWatermark = path.join("uploads/videos", `wm-${outputFilename}`);
 
-        // Step 2: Overlay scaled watermark flush at bottom
+        // Step 2: Apply watermark (minimizing CPU/memory)
         ffmpeg(outputPath)
           .input(watermarkPath)
-          .inputOptions("-loop 1")
           .complexFilter([
-            {
-              filter: "scale2ref",
-              options: "iw:ih",
-              inputs: "[1][0]",
-              outputs: "[wm][base]"
-            },
             {
               filter: "overlay",
               options: {
                 x: 0,
                 y: "main_h-overlay_h"
-              },
-              inputs: "[base][wm]",
-              outputs: "final"
+              }
             }
           ])
-          .outputOptions(["-map", "[final]", "-preset", "veryfast"])
+          .outputOptions([
+            "-preset", "ultrafast",         // ✅ Use least CPU
+            "-movflags", "+faststart",     // ✅ Fast streaming support
+            "-crf", "28"                    // ✅ Lower quality = faster
+          ])
           .output(finalWithWatermark)
           .on("end", async () => {
             await Video.create({
