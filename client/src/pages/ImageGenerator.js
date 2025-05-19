@@ -1,4 +1,3 @@
-// ✅ ImageGenerator.js — with full-width watermark overlay + mobile support
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
@@ -28,45 +27,48 @@ const ImageGenerator = () => {
     setLoading(false);
   };
 
-  const drawImageWithWatermark = (imageDataUrl, callback) => {
+  const drawImageWithWatermark = async (imageDataUrl) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      const watermark = new Image();
-      watermark.src = "/assets/Untitled design (1).png"; // <-- updated overlay path
-      watermark.onload = () => {
-        const scale = img.width / watermark.width;
-        const wmWidth = watermark.width * scale;
-        const wmHeight = watermark.height * scale;
-        ctx.drawImage(watermark, 0, img.height - wmHeight, wmWidth, wmHeight);
-        callback(canvas.toDataURL("image/png"));
+
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        const watermark = new window.Image();
+        watermark.src = "/assets/Untitled design (1).png";
+        watermark.onload = () => {
+          const scale = img.width / watermark.width;
+          const wmWidth = watermark.width * scale;
+          const wmHeight = watermark.height * scale;
+          ctx.drawImage(watermark, 0, img.height - wmHeight, wmWidth, wmHeight);
+          resolve(canvas.toDataURL("image/png"));
+        };
       };
-    };
-    img.src = imageDataUrl;
-  };
-
-  const handleDownload = () => {
-    if (!imageSrc) return;
-    drawImageWithWatermark(imageSrc, (dataUrl) => {
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `ai-image-${Date.now()}.png`;
-      link.click();
+      img.src = imageDataUrl;
     });
   };
 
-  const handleSave = () => {
+  const handleDownload = async () => {
     if (!imageSrc) return;
-    drawImageWithWatermark(imageSrc, (dataUrl) => {
-      const updated = [...savedImages, dataUrl];
-      setSavedImages(updated);
-      localStorage.setItem("savedImages", JSON.stringify(updated));
-      setImageSrc(null);
-    });
+    const watermarked = await drawImageWithWatermark(imageSrc);
+    const link = document.createElement("a");
+    link.href = watermarked;
+    link.download = `ai-image-${Date.now()}.png`;
+    link.click();
+  };
+
+  const handleSave = async () => {
+    if (!imageSrc) return;
+    const watermarked = await drawImageWithWatermark(imageSrc);
+    const updated = [...savedImages, watermarked];
+    setSavedImages(updated);
+    localStorage.setItem("savedImages", JSON.stringify(updated));
+    setImageSrc(null);
   };
 
   const handleDelete = (index) => {
@@ -77,6 +79,7 @@ const ImageGenerator = () => {
 
   return (
     <div className="relative min-h-screen text-white bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0a0a23] via-[#1c1c3c] to-black overflow-hidden">
+      {/* Stars background */}
       <div className="absolute inset-0 z-0 animate-pulse-slow">
         {[...Array(200)].map((_, i) => (
           <div
@@ -94,7 +97,7 @@ const ImageGenerator = () => {
 
       <div className="relative z-10 px-4 py-10 sm:px-6">
         <h1 className="mb-8 text-3xl font-extrabold text-center sm:text-4xl text-cyan-300 animate-pulse">
-          🎨 AI Image Generator (DALL·E 3)
+          🎨 AI Image Generator
         </h1>
 
         <div className="w-full max-w-xl mx-auto">

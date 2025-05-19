@@ -29,7 +29,7 @@ router.post(
   combineVideos
 );
 
-// ✅ NEW: GET /api/videos - list videos uploaded by logged-in user
+// ✅ GET /api/videos - list videos uploaded by logged-in user
 router.get("/", protect, async (req, res) => {
   try {
     const videos = await Video.find({ agentId: req.user.id }).sort({ createdAt: -1 });

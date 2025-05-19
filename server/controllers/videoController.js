@@ -7,7 +7,7 @@ const Video = require("../models/Video");
 
 exports.combineVideos = async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.user?.id; // ✅ Use ID from token instead of body
     const outroFile = req.body.outroFile;
 
     if (!userId || userId === "null") {
@@ -20,7 +20,7 @@ exports.combineVideos = async (req, res) => {
     const outroPath = outroFile
       ? path.join(__dirname, `../assets/outros/${outroFile}`)
       : null;
-    const watermarkPath = path.join(__dirname, "../assets/video-watermark.png"); // ✅ Update path
+    const watermarkPath = path.join(__dirname, "../assets/video-watermark.png");
 
     const uploadedVideos = req.files["clips"];
     if (!uploadedVideos || uploadedVideos.length === 0) {
@@ -44,7 +44,6 @@ exports.combineVideos = async (req, res) => {
     const outputFilename = `video-${Date.now()}.mp4`;
     const outputPath = path.join("uploads/videos", outputFilename);
 
-    // Step 1: Combine all clips (intro + uploaded + outro)
     ffmpeg()
       .input(txtListPath)
       .inputOptions(["-f", "concat", "-safe", "0"])
@@ -55,7 +54,6 @@ exports.combineVideos = async (req, res) => {
           `wm-${outputFilename}`
         );
 
-        // Step 2: Overlay watermark across bottom
         ffmpeg(outputPath)
           .input(watermarkPath)
           .complexFilter([
@@ -63,20 +61,18 @@ exports.combineVideos = async (req, res) => {
               filter: "overlay",
               options: {
                 x: 0,
-                y: "main_h-overlay_h", // ✅ align at bottom flush
+                y: "main_h-overlay_h", // ✅ Full bottom overlay
               },
             },
           ])
           .output(finalWithWatermark)
           .on("end", async () => {
-            // Step 3: Save video to DB
             await Video.create({
               agentId: userObjectId,
               filename: outputFilename,
               filenameWithOutro: `wm-${outputFilename}`,
             });
 
-            // Step 4: Send result & cleanup
             res.download(finalWithWatermark, () => {
               fs.unlinkSync(txtListPath);
               fs.unlinkSync(outputPath);

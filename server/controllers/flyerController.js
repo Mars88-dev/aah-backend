@@ -49,15 +49,17 @@ exports.generateFlyer = async (req, res) => {
     ctx.fillText(`${listing.loungeOrFlatlet}`, 340.7, 791.8);
     ctx.fillText(`${listing.garageOrParking}`, 340.7, 941.9);
 
-    // ✅ Output image
+    // ✅ Output image to /tmp
     const flyerPath = `/tmp/flyer-${Date.now()}.jpg`;
     const out = fs.createWriteStream(flyerPath);
     const stream = canvas.createJPEGStream();
     stream.pipe(out);
 
     out.on("finish", () => {
-      res.download(flyerPath, () => {
-        if (fs.existsSync(flyerPath)) fs.unlinkSync(flyerPath);
+      res.setHeader("Content-Type", "image/jpeg");
+      res.setHeader("Content-Disposition", `attachment; filename="flyer.jpg"`);
+      res.sendFile(path.resolve(flyerPath), (err) => {
+        if (!err && fs.existsSync(flyerPath)) fs.unlinkSync(flyerPath);
       });
     });
 

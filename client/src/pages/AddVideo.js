@@ -18,10 +18,7 @@ const AddVideo = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user"));
-      const userId = user?._id;
-
-      if (!token || !userId) {
+      if (!token) {
         setMessage("❌ You must be logged in to generate a video.");
         return;
       }
@@ -31,7 +28,6 @@ const AddVideo = () => {
         formData.append("clips", clips[i]);
       }
       formData.append("outroFile", outro);
-      formData.append("userId", userId);
 
       const res = await axios.post(
         "https://aah-backend.onrender.com/api/videos/combine",
