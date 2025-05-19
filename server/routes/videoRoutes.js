@@ -4,6 +4,7 @@ const multer = require("multer");
 const path = require("path");
 const { combineVideos } = require("../controllers/videoController");
 const { protect } = require("../middleware/authMiddleware");
+const Video = require("../models/Video");
 
 // ✅ Storage engine for uploaded clips and outro
 const storage = multer.diskStorage({
@@ -27,5 +28,16 @@ router.post(
   ]),
   combineVideos
 );
+
+// ✅ NEW: GET /api/videos - list videos uploaded by logged-in user
+router.get("/", protect, async (req, res) => {
+  try {
+    const videos = await Video.find({ agentId: req.user.id }).sort({ createdAt: -1 });
+    res.status(200).json(videos);
+  } catch (err) {
+    console.error("❌ Error fetching videos:", err);
+    res.status(500).json({ error: "Failed to fetch videos." });
+  }
+});
 
 module.exports = router;

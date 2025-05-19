@@ -11,17 +11,16 @@ const Dashboard = () => {
   const canvasRef = useRef(null);
   const navigate = useNavigate();
 
-  const token = localStorage.getItem("token");
-
   useEffect(() => {
-    fetchListings();
-    fetchVideos();
     const localImages = JSON.parse(localStorage.getItem("savedImages")) || [];
     setSavedImages(localImages);
+    fetchListings();
+    fetchVideos();
   }, []);
 
   const fetchListings = async () => {
     try {
+      const token = localStorage.getItem("token");
       const res = await axios.get("https://aah-backend.onrender.com/api/listings", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -34,12 +33,14 @@ const Dashboard = () => {
 
   const fetchVideos = async () => {
     try {
+      const token = localStorage.getItem("token");
       const res = await axios.get("https://aah-backend.onrender.com/api/videos", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setVideos(res.data);
     } catch (err) {
       console.error("❌ Error fetching videos:", err);
+      setMessage("❌ Failed to fetch videos.");
     }
   };
 
@@ -50,6 +51,7 @@ const Dashboard = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this listing?")) {
       try {
+        const token = localStorage.getItem("token");
         await axios.delete(`https://aah-backend.onrender.com/api/listings/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -64,6 +66,7 @@ const Dashboard = () => {
   const handleDeleteVideo = async (id) => {
     if (window.confirm("Are you sure you want to delete this video?")) {
       try {
+        const token = localStorage.getItem("token");
         await axios.delete(`https://aah-backend.onrender.com/api/videos/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -109,6 +112,7 @@ const Dashboard = () => {
   const handleGenerateFlyer = async (listingId) => {
     try {
       setGeneratingFlyerId(listingId);
+      const token = localStorage.getItem("token");
       const res = await axios.post(
         "https://aah-backend.onrender.com/api/flyers/generate",
         { listingId },
@@ -135,6 +139,9 @@ const Dashboard = () => {
 
   return (
     <div className="relative min-h-screen px-4 py-10 overflow-hidden text-white bg-gradient-to-br from-black via-slate-900 to-slate-800">
+      {/* ✨ Starry background animation layer */}
+      <div className="absolute top-0 left-0 w-full h-full -z-10 stars" />
+
       <header className="mb-12 text-center">
         <h1 className="mb-2 text-4xl font-extrabold sm:text-5xl text-cyan-300 drop-shadow-lg">All About Homes AI Portal</h1>
         <p className="text-sm text-white/60">Empowering your real estate business with smart tools and stunning marketing materials.</p>
