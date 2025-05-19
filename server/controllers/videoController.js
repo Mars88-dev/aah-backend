@@ -7,7 +7,7 @@ const Video = require("../models/Video");
 
 exports.combineVideos = async (req, res) => {
   try {
-    const userId = req.user?.id; // ✅ Use ID from token instead of body
+    const userId = req.user?.id;
     const outroFile = req.body.outroFile;
 
     if (!userId || userId === "null") {
@@ -44,6 +44,7 @@ exports.combineVideos = async (req, res) => {
     const outputFilename = `video-${Date.now()}.mp4`;
     const outputPath = path.join("uploads/videos", outputFilename);
 
+    // Step 1: Combine all clips
     ffmpeg()
       .input(txtListPath)
       .inputOptions(["-f", "concat", "-safe", "0"])
@@ -54,17 +55,30 @@ exports.combineVideos = async (req, res) => {
           `wm-${outputFilename}`
         );
 
+        // Step 2: Add scaled watermark flush at bottom
         ffmpeg(outputPath)
           .input(watermarkPath)
           .complexFilter([
             {
+              filter: "scale2ref",
+              options: {
+                w: "main_w",
+                h: -1,
+              },
+              inputs: "[1][0]",
+              outputs: "[wm][vid]",
+            },
+            {
               filter: "overlay",
               options: {
                 x: 0,
-                y: "main_h-overlay_h", // ✅ Full bottom overlay
+                y: "main_h-overlay_h",
               },
+              inputs: "[vid][wm]",
+              outputs: "final",
             },
           ])
+          .outputOptions("-map", "[final]")
           .output(finalWithWatermark)
           .on("end", async () => {
             await Video.create({

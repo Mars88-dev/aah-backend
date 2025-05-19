@@ -43,7 +43,7 @@ const ImageGenerator = () => {
         watermark.src = "/assets/Untitled design (1).png";
         watermark.onload = () => {
           const scale = img.width / watermark.width;
-          const wmWidth = watermark.width * scale;
+          const wmWidth = img.width;
           const wmHeight = watermark.height * scale;
           ctx.drawImage(watermark, 0, img.height - wmHeight, wmWidth, wmHeight);
           resolve(canvas.toDataURL("image/png"));
