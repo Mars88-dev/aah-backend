@@ -16,7 +16,13 @@ const AddVideo = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const agentId = localStorage.getItem("agentId");
+      const user = JSON.parse(localStorage.getItem("user"));
+      const agentId = user?._id;
+
+      if (!agentId) {
+        setMessage("❌ Agent ID is missing. Please log in again.");
+        return;
+      }
 
       const formData = new FormData();
       for (let i = 0; i < clips.length; i++) {

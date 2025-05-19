@@ -9,6 +9,10 @@ exports.combineVideos = async (req, res) => {
     const agentId = req.body.agentId;
     const outroFile = req.body.outroFile;
 
+    if (!agentId || agentId === "null") {
+      return res.status(400).json({ error: "Missing or invalid agentId" });
+    }
+
     const introPath = path.join(__dirname, "../assets/intro/intro.mp4");
     const outroPath = outroFile ? path.join(__dirname, `../assets/outros/${outroFile}`) : null;
     const watermarkPath = path.join(__dirname, "../assets/logo.png");
@@ -38,7 +42,6 @@ exports.combineVideos = async (req, res) => {
       .inputOptions(["-f", "concat", "-safe", "0"])
       .outputOptions("-c", "copy")
       .on("end", () => {
-        // Now overlay watermark
         const finalWithWatermark = path.join("uploads/videos", `wm-${outputFilename}`);
         ffmpeg(outputPath)
           .input(watermarkPath)
@@ -77,3 +80,4 @@ exports.combineVideos = async (req, res) => {
     res.status(500).json({ error: "Unexpected error" });
   }
 };
+
