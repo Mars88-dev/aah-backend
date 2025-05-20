@@ -10,7 +10,6 @@ const ImageGenerator = () => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    // Fetch saved images from server
     const fetchSavedImages = async () => {
       try {
         const res = await axios.get("https://aah-backend.onrender.com/api/images");
@@ -48,13 +47,12 @@ const ImageGenerator = () => {
         ctx.drawImage(img, 0, 0);
 
         const watermark = new Image();
-        watermark.src = "/assets/Untitled design (1).png"; // Your perfect watermark
+        watermark.src = "/assets/Untitled design (1).png";
         watermark.onload = () => {
-          const wmHeight = watermark.height;
-          const wmWidth = watermark.width;
-
-          // Draw watermark at full width, maintaining original dimensions
-          ctx.drawImage(watermark, 0, canvas.height - wmHeight, wmWidth, wmHeight);
+          const wmWidth = img.width;
+          const aspectRatio = watermark.width / watermark.height;
+          const wmHeight = wmWidth / aspectRatio;
+          ctx.drawImage(watermark, 0, img.height - wmHeight, wmWidth, wmHeight);
           resolve(canvas.toDataURL("image/png"));
         };
       };
@@ -77,9 +75,7 @@ const ImageGenerator = () => {
     if (!imageSrc) return;
     const watermarked = await drawImageWithWatermark(imageSrc);
     try {
-      await axios.post("https://aah-backend.onrender.com/api/images/save", {
-        image: watermarked,
-      });
+      await axios.post("https://aah-backend.onrender.com/api/images/save", { image: watermarked });
       setSavedImages((prev) => [...prev, { url: watermarked }]);
       setImageSrc(null);
     } catch (err) {
@@ -98,6 +94,7 @@ const ImageGenerator = () => {
 
   return (
     <div className="relative min-h-screen text-white bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0a0a23] via-[#1c1c3c] to-black overflow-hidden">
+      {/* Starry Background */}
       <div className="absolute inset-0 z-0 animate-pulse-slow">
         {[...Array(200)].map((_, i) => (
           <div
@@ -168,7 +165,11 @@ const ImageGenerator = () => {
                   key={index}
                   className="relative flex flex-col h-full p-2 bg-gradient-to-tr from-black to-slate-900 rounded-xl"
                 >
-                  <img src={img.url || img} alt={`AI ${index}`} className="object-cover w-full h-48 rounded-md" />
+                  <img
+                    src={img.url || img}
+                    alt={`AI ${index}`}
+                    className="object-cover w-full h-48 rounded-md"
+                  />
                   <button
                     onClick={() => handleDelete(index, img._id)}
                     className="absolute px-2 py-1 text-xs text-white bg-red-600 rounded top-2 right-2 hover:bg-red-700"

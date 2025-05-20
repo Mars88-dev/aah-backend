@@ -1,24 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const Image = require("../models/Image");
+const {
+  saveImage,
+  getAllImages,
+  deleteImage,
+} = require("../controllers/imageController");
 
 // POST /api/images/save
-router.post("/save", async (req, res) => {
-  const { image } = req.body;
-  const saved = await Image.create({ url: image });
-  res.status(201).json(saved);
-});
+router.post("/save", saveImage);
 
 // GET /api/images
-router.get("/", async (req, res) => {
-  const all = await Image.find().sort({ createdAt: -1 });
-  res.json(all);
-});
+router.get("/", getAllImages);
 
 // DELETE /api/images/:id
-router.delete("/:id", async (req, res) => {
-  await Image.findByIdAndDelete(req.params.id);
-  res.json({ success: true });
-});
+router.delete("/:id", deleteImage);
 
 module.exports = router;

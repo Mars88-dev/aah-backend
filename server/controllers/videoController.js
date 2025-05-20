@@ -8,18 +8,18 @@ const Video = require("../models/Video");
 exports.combineVideos = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const outroFile = req.body.outroFile;
-
     if (!userId || userId === "null") {
       return res.status(400).json({ error: "Missing or invalid userId" });
     }
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
+
     const introPath = path.join(__dirname, "../assets/intro/intro.mp4");
-    const outroPath = outroFile
-      ? path.join(__dirname, `../assets/outros/${outroFile}`)
+    const outroFileUploaded = req.files?.["outroFile"]?.[0];
+    const outroFileName = outroFileUploaded?.originalname;
+    const outroPath = outroFileName
+      ? path.join(__dirname, `../assets/outros/${outroFileName}`)
       : null;
-    const watermarkPath = path.join(__dirname, "../assets/video-watermark.png");
 
     const uploadedVideos = req.files["clips"];
     if (!uploadedVideos || uploadedVideos.length === 0) {
@@ -30,8 +30,14 @@ exports.combineVideos = async (req, res) => {
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
     const allClips = [];
+
+    // ✅ Always push intro if it exists
     if (fs.existsSync(introPath)) allClips.push(introPath);
+
+    // ✅ Uploaded clips
     allClips.push(...uploadedVideos.map((file) => file.path));
+
+    // ✅ Optional outro
     if (outroPath && fs.existsSync(outroPath)) allClips.push(outroPath);
 
     const txtListPath = path.join(tempDir, `${uuidv4()}.txt`);
@@ -41,31 +47,25 @@ exports.combineVideos = async (req, res) => {
     const outputFilename = `video-${Date.now()}.mp4`;
     const outputPath = path.join("uploads/videos", outputFilename);
 
-    // Step 1: Combine all clips including intro and outro
+    // Step 1: Combine clips
     ffmpeg()
       .input(txtListPath)
       .inputOptions(["-f", "concat", "-safe", "0"])
       .outputOptions("-c", "copy")
       .on("end", () => {
         const finalWithWatermark = path.join("uploads/videos", `wm-${outputFilename}`);
+        const watermarkPath = path.join(__dirname, "../assets/video-watermark.png");
 
-        // Step 2: Apply watermark
+        // Step 2: Add watermark
         ffmpeg(outputPath)
           .input(watermarkPath)
           .complexFilter([
             {
               filter: "overlay",
-              options: {
-                x: 0,
-                y: "main_h-overlay_h"
-              }
+              options: { x: 0, y: "main_h-overlay_h" }
             }
           ])
-          .outputOptions([
-            "-preset", "ultrafast",
-            "-movflags", "+faststart",
-            "-crf", "28"
-          ])
+          .outputOptions(["-preset", "ultrafast", "-movflags", "+faststart", "-crf", "28"])
           .output(finalWithWatermark)
           .on("end", async () => {
             await Video.create({
@@ -91,7 +91,7 @@ exports.combineVideos = async (req, res) => {
       })
       .save(outputPath);
   } catch (err) {
-    console.error("❌ Video processing error:", err);
+    console.error("❌ Unexpected error:", err);
     res.status(500).json({ error: "Unexpected error" });
   }
 };

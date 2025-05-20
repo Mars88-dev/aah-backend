@@ -4,7 +4,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
 const path = require("path");
-const fs = require("fs"); // ✅ Added for folder creation
+const fs = require("fs");
 const OpenAI = require("openai");
 
 // ✅ Ensure upload folders exist on Render/local
@@ -16,6 +16,7 @@ uploadDirs.forEach(dir => {
   }
 });
 
+// ✅ Import routes
 const videoRoutes = require("./routes/videoRoutes");
 const agentRoutes = require("./routes/agentRoutes");
 const listingRoutes = require("./routes/listingRoutes");
@@ -25,9 +26,8 @@ const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 app.use(express.json());
-app.use("/api/images", imageRoutes);
 
-// ✅ CORS config for frontend on Render
+// ✅ CORS for frontend (Render)
 app.use(cors({
   origin: "https://aah-frontend.onrender.com",
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -41,6 +41,9 @@ app.use("/templates", express.static(path.join(__dirname, "templates")));
 app.use("/outros", express.static(path.join(__dirname, "assets/outros")));
 app.use("/intro", express.static(path.join(__dirname, "assets/intro")));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
+
+// ✅ Route: Image routes first for priority
+app.use("/api/images", imageRoutes);
 
 // ✅ OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -77,7 +80,7 @@ Keep it professional, engaging, and appealing to buyers.
   }
 });
 
-// ✅ AI Image Generator (with watermark)
+// ✅ AI Image Generator (with watermark applied server-side)
 app.post("/api/generate-image", async (req, res) => {
   const { prompt } = req.body;
 
@@ -91,9 +94,7 @@ app.post("/api/generate-image", async (req, res) => {
     });
 
     const imageUrl = response?.data?.[0]?.url;
-    if (!imageUrl) {
-      return res.status(500).json({ error: "No image URL returned from OpenAI." });
-    }
+    if (!imageUrl) return res.status(500).json({ error: "No image URL returned from OpenAI." });
 
     const imageRes = await axios.get(imageUrl, { responseType: "arraybuffer" });
     const imageBuffer = Buffer.from(imageRes.data, "binary");
@@ -105,7 +106,7 @@ app.post("/api/generate-image", async (req, res) => {
     const mainImage = await loadImage(imageBuffer);
     ctx.drawImage(mainImage, 0, 0);
 
-    const watermark = await loadImage(path.join(__dirname, "assets/logo.png"));
+    const watermark = await loadImage(path.join(__dirname, "assets/Untitled design (1).png"));
     const wmHeight = 120;
     const wmWidth = 1024;
     ctx.globalAlpha = 0.9;
@@ -120,7 +121,7 @@ app.post("/api/generate-image", async (req, res) => {
   }
 });
 
-// ✅ MongoDB
+// ✅ Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -129,13 +130,13 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ All API routes
+// ✅ Register all other routes
 app.use("/api/auth", authRoutes);
 app.use("/api/agents", agentRoutes);
 app.use("/api/listings", listingRoutes);
 app.use("/api/flyers", flyerRoutes);
 app.use("/api/videos", videoRoutes);
 
-// ✅ Start server
+// ✅ Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
