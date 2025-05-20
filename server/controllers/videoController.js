@@ -41,7 +41,7 @@ exports.combineVideos = async (req, res) => {
     const outputFilename = `video-${Date.now()}.mp4`;
     const outputPath = path.join("uploads/videos", outputFilename);
 
-    // Step 1: Combine all clips
+    // Step 1: Combine all clips including intro and outro
     ffmpeg()
       .input(txtListPath)
       .inputOptions(["-f", "concat", "-safe", "0"])
@@ -49,7 +49,7 @@ exports.combineVideos = async (req, res) => {
       .on("end", () => {
         const finalWithWatermark = path.join("uploads/videos", `wm-${outputFilename}`);
 
-        // Step 2: Apply watermark (minimizing CPU/memory)
+        // Step 2: Apply watermark
         ffmpeg(outputPath)
           .input(watermarkPath)
           .complexFilter([
@@ -62,9 +62,9 @@ exports.combineVideos = async (req, res) => {
             }
           ])
           .outputOptions([
-            "-preset", "ultrafast",         // ✅ Use least CPU
-            "-movflags", "+faststart",     // ✅ Fast streaming support
-            "-crf", "28"                    // ✅ Lower quality = faster
+            "-preset", "ultrafast",
+            "-movflags", "+faststart",
+            "-crf", "28"
           ])
           .output(finalWithWatermark)
           .on("end", async () => {

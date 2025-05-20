@@ -42,7 +42,9 @@ const AddVideo = () => {
       const link = document.createElement("a");
       link.href = window.URL.createObjectURL(blob);
       link.download = "listing-video.mp4";
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
 
       setMessage("✅ Video downloaded successfully!");
     } catch (err) {
@@ -52,11 +54,24 @@ const AddVideo = () => {
   };
 
   return (
-    <div className="relative min-h-screen px-4 py-10 overflow-hidden text-white bg-gradient-to-br from-black via-slate-900 to-slate-800">
-      {/* ✨ Animated Starry Background */}
-      <div className="absolute top-0 left-0 w-full h-full -z-10 stars" />
+    <div className="relative min-h-screen text-white bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0a0a23] via-[#1c1c3c] to-black overflow-hidden">
+      {/* ✨ Starry animated background */}
+      <div className="absolute inset-0 z-0 animate-pulse-slow">
+        {[...Array(200)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-[2px] h-[2px] bg-white rounded-full opacity-40 animate-flicker"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${2 + Math.random() * 3}s`,
+            }}
+          ></div>
+        ))}
+      </div>
 
-      <div className="max-w-xl p-8 mx-auto text-white rounded shadow-xl bg-slate-800/80">
+      <div className="relative z-10 max-w-xl p-8 mx-auto mt-10 text-white border rounded shadow-xl bg-slate-800/80 backdrop-blur-md border-white/10">
         <h1 className="mb-6 text-3xl font-bold text-center text-cyan-300">🎬 Generate Property Video</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -84,7 +99,7 @@ const AddVideo = () => {
 
           <button
             type="submit"
-            className="w-full py-3 font-bold text-white bg-blue-600 rounded hover:bg-blue-700"
+            className="w-full py-3 font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl hover:from-purple-700 hover:to-blue-700"
           >
             Generate Video
           </button>

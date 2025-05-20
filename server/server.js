@@ -20,10 +20,12 @@ const videoRoutes = require("./routes/videoRoutes");
 const agentRoutes = require("./routes/agentRoutes");
 const listingRoutes = require("./routes/listingRoutes");
 const flyerRoutes = require("./routes/flyerRoutes");
+const imageRoutes = require("./routes/imageRoutes");
 const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 app.use(express.json());
+app.use("/api/images", imageRoutes);
 
 // ✅ CORS config for frontend on Render
 app.use(cors({

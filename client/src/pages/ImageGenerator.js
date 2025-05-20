@@ -10,8 +10,16 @@ const ImageGenerator = () => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("savedImages")) || [];
-    setSavedImages(stored);
+    // Fetch saved images from server
+    const fetchSavedImages = async () => {
+      try {
+        const res = await axios.get("https://aah-backend.onrender.com/api/images");
+        setSavedImages(res.data);
+      } catch (err) {
+        console.error("❌ Failed to load saved images:", err);
+      }
+    };
+    fetchSavedImages();
   }, []);
 
   const handleGenerate = async () => {
@@ -32,21 +40,21 @@ const ImageGenerator = () => {
     const ctx = canvas.getContext("2d");
 
     return new Promise((resolve) => {
-      const img = new window.Image();
+      const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
 
-        const watermark = new window.Image();
-        watermark.src = "/assets/Untitled design (1).png";
+        const watermark = new Image();
+        watermark.src = "/assets/Untitled design (1).png"; // Your perfect watermark
         watermark.onload = () => {
-          // Keep original watermark proportions but match width to canvas
-          const ratio = watermark.height / watermark.width;
-          const wmWidth = img.width;
-          const wmHeight = wmWidth * ratio;
-          ctx.drawImage(watermark, 0, img.height - wmHeight, wmWidth, wmHeight);
+          const wmHeight = watermark.height;
+          const wmWidth = watermark.width;
+
+          // Draw watermark at full width, maintaining original dimensions
+          ctx.drawImage(watermark, 0, canvas.height - wmHeight, wmWidth, wmHeight);
           resolve(canvas.toDataURL("image/png"));
         };
       };
@@ -68,21 +76,28 @@ const ImageGenerator = () => {
   const handleSave = async () => {
     if (!imageSrc) return;
     const watermarked = await drawImageWithWatermark(imageSrc);
-    const updated = [...savedImages, watermarked];
-    setSavedImages(updated);
-    localStorage.setItem("savedImages", JSON.stringify(updated));
-    setImageSrc(null);
+    try {
+      await axios.post("https://aah-backend.onrender.com/api/images/save", {
+        image: watermarked,
+      });
+      setSavedImages((prev) => [...prev, { url: watermarked }]);
+      setImageSrc(null);
+    } catch (err) {
+      console.error("❌ Failed to save image to server:", err);
+    }
   };
 
-  const handleDelete = (index) => {
-    const updated = savedImages.filter((_, i) => i !== index);
-    setSavedImages(updated);
-    localStorage.setItem("savedImages", JSON.stringify(updated));
+  const handleDelete = async (index, id) => {
+    try {
+      await axios.delete(`https://aah-backend.onrender.com/api/images/${id}`);
+      setSavedImages((prev) => prev.filter((_, i) => i !== index));
+    } catch (err) {
+      console.error("❌ Failed to delete image:", err);
+    }
   };
 
   return (
     <div className="relative min-h-screen text-white bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0a0a23] via-[#1c1c3c] to-black overflow-hidden">
-      {/* Stars background */}
       <div className="absolute inset-0 z-0 animate-pulse-slow">
         {[...Array(200)].map((_, i) => (
           <div
@@ -148,14 +163,14 @@ const ImageGenerator = () => {
           <div className="max-w-6xl px-2 mx-auto mt-16">
             <h3 className="mb-4 text-2xl font-bold text-cyan-200">🖼️ Saved AI Images</h3>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {savedImages.map((url, index) => (
+              {savedImages.map((img, index) => (
                 <div
                   key={index}
                   className="relative flex flex-col h-full p-2 bg-gradient-to-tr from-black to-slate-900 rounded-xl"
                 >
-                  <img src={url} alt={`AI ${index}`} className="object-cover w-full h-48 rounded-md" />
+                  <img src={img.url || img} alt={`AI ${index}`} className="object-cover w-full h-48 rounded-md" />
                   <button
-                    onClick={() => handleDelete(index)}
+                    onClick={() => handleDelete(index, img._id)}
                     className="absolute px-2 py-1 text-xs text-white bg-red-600 rounded top-2 right-2 hover:bg-red-700"
                   >
                     🗑️
