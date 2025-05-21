@@ -45,7 +45,7 @@ const Dashboard = () => {
       const res = await axios.get("https://aah-backend.onrender.com/api/images");
       setSavedImages(res.data);
     } catch (err) {
-      console.error("❌ Failed to load saved images:", err);
+      console.error("❌ Failed to load images:", err);
     }
   };
 
@@ -54,40 +54,28 @@ const Dashboard = () => {
   const handleEdit = (id) => navigate(`/edit-listing/${id}`);
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this listing?")) {
-      try {
-        const token = localStorage.getItem("token");
-        await axios.delete(`https://aah-backend.onrender.com/api/listings/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        fetchListings();
-      } catch (err) {
-        console.error("❌ Error deleting listing:", err);
-      }
+    if (window.confirm("Delete this listing?")) {
+      const token = localStorage.getItem("token");
+      await axios.delete(`https://aah-backend.onrender.com/api/listings/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchListings();
     }
   };
 
   const handleDeleteVideo = async (id) => {
-    if (window.confirm("Are you sure you want to delete this video?")) {
-      try {
-        const token = localStorage.getItem("token");
-        await axios.delete(`https://aah-backend.onrender.com/api/videos/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        fetchVideos();
-      } catch (err) {
-        console.error("❌ Error deleting video:", err);
-      }
+    if (window.confirm("Delete this video?")) {
+      const token = localStorage.getItem("token");
+      await axios.delete(`https://aah-backend.onrender.com/api/videos/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchVideos();
     }
   };
 
   const handleDeleteImage = async (index, id) => {
-    try {
-      await axios.delete(`https://aah-backend.onrender.com/api/images/${id}`);
-      setSavedImages((prev) => prev.filter((_, i) => i !== index));
-    } catch (err) {
-      console.error("❌ Failed to delete image:", err);
-    }
+    await axios.delete(`https://aah-backend.onrender.com/api/images/${id}`);
+    setSavedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDownloadImage = (imageSrc) => {
@@ -132,50 +120,69 @@ const Dashboard = () => {
 
       <header className="relative z-10 mb-12 text-center">
         <h1 className="text-4xl font-extrabold text-cyan-300">All About Homes AI Portal</h1>
-        <p className="text-sm text-white/60">Empowering your real estate business with smart tools.</p>
+        <p className="text-white/60">Smart tools for your real estate business.</p>
       </header>
 
-      <section className="relative z-10 grid grid-cols-2 gap-4 mb-12 sm:grid-cols-4">
-        <button onClick={handleAddNewListing} className="py-3 font-bold bg-green-600 rounded">➕ Listing</button>
-        <button onClick={handleAddNewVideo} className="py-3 font-bold bg-blue-600 rounded">🎥 Video</button>
-        <Link to="/description-generator" className="py-3 font-bold text-center bg-yellow-600 rounded">✍️ AI Desc</Link>
-        <Link to="/image-generator" className="py-3 font-bold text-center bg-pink-600 rounded">🎨 AI Image</Link>
+      <section className="relative z-10 grid grid-cols-2 gap-4 mb-10 sm:grid-cols-4">
+        <button onClick={handleAddNewListing} className="py-3 bg-green-600 rounded-xl">➕ Add Listing</button>
+        <button onClick={handleAddNewVideo} className="py-3 bg-blue-600 rounded-xl">🎥 Add Video</button>
+        <Link to="/description-generator" className="py-3 text-center bg-yellow-600 rounded-xl">✍️ AI Desc</Link>
+        <Link to="/image-generator" className="py-3 text-center bg-pink-600 rounded-xl">🎨 AI Image</Link>
       </section>
 
-      <section className="relative z-10 mb-16">
-        <h2 className="mb-4 text-2xl text-cyan-300">Listings</h2>
-        {listings.map(listing => (
-          <div key={listing._id} className="p-4 mb-4 bg-gray-800 rounded">
-            <h3 className="font-bold">{listing.title}</h3>
-            <button onClick={() => handleGenerateFlyer(listing._id)} className="px-2 bg-green-500 rounded">Flyer</button>
-            <button onClick={() => handleEdit(listing._id)} className="px-2 bg-blue-500 rounded">Edit</button>
-            <button onClick={() => handleDelete(listing._id)} className="px-2 bg-red-500 rounded">Delete</button>
-          </div>
-        ))}
+      <section className="relative z-10 mb-10">
+        <h2 className="mb-4 text-2xl border-b text-cyan-300 border-cyan-700">🏠 Listings</h2>
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {listings.map(listing => (
+            <div key={listing._id} className="p-4 bg-slate-800 rounded-xl">
+              {listing.coverImage && (
+                <img
+                  src={`https://aah-backend.onrender.com${listing.coverImage}`}
+                  className="object-cover w-full h-32 rounded-md"
+                />
+              )}
+              <h3 className="text-lg font-bold">{listing.title}</h3>
+              <p className="text-green-300">R {listing.price}</p>
+              <p>📍 {listing.location}</p>
+              <button onClick={() => handleGenerateFlyer(listing._id)} className="w-full py-1 mt-2 bg-green-500 rounded">
+                {generatingFlyerId === listing._id ? "Generating..." : "🖨️ Flyer"}
+              </button>
+              <div className="flex gap-2 mt-2">
+                <button onClick={() => handleEdit(listing._id)} className="flex-1 py-1 bg-blue-500 rounded">✏️ Edit</button>
+                <button onClick={() => handleDelete(listing._id)} className="flex-1 py-1 bg-red-500 rounded">🗑️ Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
-      <section className="relative z-10 mb-16">
-        <h2 className="mb-4 text-2xl text-cyan-300">Videos</h2>
-        {videos.map(video => (
-          <div key={video._id} className="p-4 mb-4 bg-gray-800 rounded">
-            <video src={`https://aah-backend.onrender.com/uploads/videos/${video.filename}`} controls className="rounded" />
-            <button onClick={() => handleDeleteVideo(video._id)} className="px-2 bg-red-500 rounded">Delete</button>
-          </div>
-        ))}
+      <section className="relative z-10 mb-10">
+        <h2 className="mb-4 text-2xl border-b text-cyan-300 border-cyan-700">🎞️ Videos</h2>
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {videos.map(video => (
+            <div key={video._id} className="p-4 bg-slate-800 rounded-xl">
+              <video src={`https://aah-backend.onrender.com/uploads/videos/${video.filename}`} controls className="rounded" />
+              <div className="flex gap-2 mt-2">
+                <a href={`https://aah-backend.onrender.com/uploads/videos/${video.filename}`} download className="flex-1 py-1 text-center bg-green-500 rounded">⬇️ Save</a>
+                <button onClick={() => handleDeleteVideo(video._id)} className="flex-1 py-1 bg-red-500 rounded">🗑️ Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
-      <section className="relative z-10 mb-16">
-        <h2 className="mb-4 text-2xl text-cyan-300">AI Images</h2>
-        {savedImages.map((img, idx) => (
-          <div key={idx} className="p-4 mb-4 bg-gray-800 rounded">
-            <img src={img.url} alt="AI" className="rounded" />
-            <button onClick={() => handleDownloadImage(img.url)} className="px-2 bg-blue-500 rounded">Download</button>
-            <button onClick={() => handleDeleteImage(idx, img._id)} className="px-2 bg-red-500 rounded">Delete</button>
-          </div>
-        ))}
+      <section className="relative z-10">
+        <h2 className="mb-4 text-2xl border-b text-cyan-300 border-cyan-700">🖼️ AI Images</h2>
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {savedImages.map((img, idx) => (
+            <div key={idx} className="p-4 bg-slate-800 rounded-xl">
+              <img src={img.url} className="object-cover w-full h-32 rounded-md" />
+              <button onClick={() => handleDownloadImage(img.url)} className="w-full py-1 mt-2 bg-blue-500 rounded">⬇️ Save</button>
+              <button onClick={() => handleDeleteImage(idx, img._id)} className="w-full py-1 mt-1 bg-red-500 rounded">🗑️ Delete</button>
+            </div>
+          ))}
+        </div>
       </section>
-
-      <canvas ref={canvasRef} className="hidden"></canvas>
     </div>
   );
 };
