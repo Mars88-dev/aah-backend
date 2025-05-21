@@ -41,10 +41,14 @@ exports.combineVideos = async (req, res) => {
 
     const convertedPaths = [];
 
+    console.log("📥 Intro Path:", introPath);
     if (fs.existsSync(introPath)) {
       const convertedIntro = path.join(tempDir, `intro-${Date.now()}.mp4`);
+      console.log("✅ Intro found. Converting...");
       await convertToMp4(introPath, convertedIntro);
       convertedPaths.push(path.resolve(convertedIntro));
+    } else {
+      console.log("⚠️ Intro NOT found:", introPath);
     }
 
     for (const file of uploadedVideos) {
@@ -55,12 +59,21 @@ exports.combineVideos = async (req, res) => {
 
     if (outroPath && fs.existsSync(outroPath)) {
       const convertedOutro = path.join(tempDir, `outro-${Date.now()}.mp4`);
+      console.log("✅ Outro found. Converting:", outroPath);
       await convertToMp4(outroPath, convertedOutro);
       convertedPaths.push(path.resolve(convertedOutro));
+    } else {
+      console.log("ℹ️ No outro or missing:", outroPath);
+    }
+
+    if (convertedPaths.length === 0) {
+      return res.status(400).json({ error: "No valid video segments to combine." });
     }
 
     const txtListPath = path.join(tempDir, `${uuidv4()}.txt`);
     const listFileContent = convertedPaths.map(p => `file '${p.replace(/'/g, "'\\''")}'`).join("\n");
+    console.log("📝 Creating ffmpeg .txt list:", txtListPath);
+    console.log(listFileContent);
     fs.writeFileSync(txtListPath, listFileContent);
 
     const outputFilename = `video-${Date.now()}.mp4`;
