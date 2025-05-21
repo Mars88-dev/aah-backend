@@ -1,4 +1,3 @@
-// REVISED: videoController.js (only the combineVideos function)
 const fs = require("fs");
 const path = require("path");
 const ffmpeg = require("fluent-ffmpeg");
@@ -14,12 +13,12 @@ exports.combineVideos = async (req, res) => {
     }
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    const introPath = path.join(__dirname, "../assets/intro/intro.mp4");
+    const introPath = path.resolve(__dirname, "../assets/intro/intro.mp4");
     const outroFile = req.files["outroFile"]?.[0];
-    const outroPath = outroFile ? outroFile.path : null;
-    const watermarkPath = path.join(__dirname, "../assets/video-watermark.png");
-
+    const outroPath = outroFile ? path.resolve(outroFile.path) : null;
+    const watermarkPath = path.resolve(__dirname, "../assets/video-watermark.png");
     const uploadedVideos = req.files["clips"];
+
     if (!uploadedVideos || uploadedVideos.length === 0) {
       return res.status(400).json({ error: "No video clips uploaded" });
     }
@@ -45,29 +44,28 @@ exports.combineVideos = async (req, res) => {
     if (fs.existsSync(introPath)) {
       const convertedIntro = path.join(tempDir, `intro-${Date.now()}.mp4`);
       await convertToMp4(introPath, convertedIntro);
-      convertedPaths.push(convertedIntro);
+      convertedPaths.push(path.resolve(convertedIntro));
     }
 
     for (const file of uploadedVideos) {
       const convertedClip = path.join(tempDir, `clip-${Date.now()}-${file.originalname}`);
       await convertToMp4(file.path, convertedClip);
-      convertedPaths.push(convertedClip);
+      convertedPaths.push(path.resolve(convertedClip));
     }
 
     if (outroPath && fs.existsSync(outroPath)) {
       const convertedOutro = path.join(tempDir, `outro-${Date.now()}.mp4`);
       await convertToMp4(outroPath, convertedOutro);
-      convertedPaths.push(convertedOutro);
+      convertedPaths.push(path.resolve(convertedOutro));
     }
 
     const txtListPath = path.join(tempDir, `${uuidv4()}.txt`);
-    const listFileContent = convertedPaths.map(p => `file '${p}'`).join("\n");
+    const listFileContent = convertedPaths.map(p => `file '${p.replace(/'/g, "'\\''")}'`).join("\n");
     fs.writeFileSync(txtListPath, listFileContent);
 
     const outputFilename = `video-${Date.now()}.mp4`;
     const outputPath = path.join(__dirname, `../uploads/videos/${outputFilename}`);
 
-    // Concatenate the videos
     await new Promise((resolve, reject) => {
       ffmpeg()
         .input(txtListPath)
@@ -78,13 +76,13 @@ exports.combineVideos = async (req, res) => {
         .save(outputPath);
     });
 
-    // Apply watermark
     const finalWithWatermark = path.join(__dirname, `../uploads/videos/wm-${outputFilename}`);
     await new Promise((resolve, reject) => {
       ffmpeg(outputPath)
         .input(watermarkPath)
         .complexFilter("overlay=0:main_h-overlay_h")
-        .outputOptions(["-crf", "23", "-preset", "ultrafast"])
+        .addOption("-crf", "23")
+        .addOption("-preset", "ultrafast")
         .on("end", resolve)
         .on("error", reject)
         .save(finalWithWatermark);
