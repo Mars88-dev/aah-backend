@@ -28,12 +28,21 @@ exports.combineVideos = async (req, res) => {
 
     const convertToMp4 = (inputPath, outputPath) => {
       return new Promise((resolve, reject) => {
+        if (!fs.existsSync(inputPath) || fs.statSync(inputPath).size === 0) {
+          return reject(new Error(`❌ Skipped invalid input: ${inputPath}`));
+        }
+
         ffmpeg(inputPath)
           .videoCodec("libx264")
           .audioCodec("aac")
           .addOption("-crf", "23")
-          .addOption("-preset", "ultrafast")
-          .on("end", () => resolve(outputPath))
+          .addOption("-preset", "veryfast")
+          .on("end", () => {
+            if (fs.statSync(outputPath).size < 1024) {
+              return reject(new Error(`❌ Output too small, likely invalid: ${outputPath}`));
+            }
+            resolve(outputPath);
+          })
           .on("error", (err) => reject(err))
           .save(outputPath);
       });
@@ -96,7 +105,7 @@ exports.combineVideos = async (req, res) => {
         .input(watermarkPath)
         .complexFilter("overlay=0:main_h-overlay_h")
         .addOption("-crf", "23")
-        .addOption("-preset", "ultrafast")
+        .addOption("-preset", "veryfast")
         .on("end", resolve)
         .on("error", reject)
         .save(finalWithWatermark);
