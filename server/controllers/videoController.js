@@ -8,17 +8,18 @@ const Video = require("../models/Video");
 exports.combineVideos = async (req, res) => {
   try {
     const userId = req.user?.id;
+    const outroFile = req.body.outroFile;
+
     if (!userId || userId === "null") {
       return res.status(400).json({ error: "Missing or invalid userId" });
     }
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
-
     const introPath = path.join(__dirname, "../assets/intro/intro.mp4");
-    const outroFileName = req.body.outroFile; // ✅ Read from body, not files
-    const outroPath = outroFileName
-      ? path.join(__dirname, `../assets/outros/${outroFileName}`)
+    const outroPath = outroFile
+      ? path.join(__dirname, `../assets/outros/${outroFile}`)
       : null;
+    const watermarkPath = path.join(__dirname, "../assets/video-watermark.png");
 
     const uploadedVideos = req.files["clips"];
     if (!uploadedVideos || uploadedVideos.length === 0) {
@@ -28,43 +29,76 @@ exports.combineVideos = async (req, res) => {
     const tempDir = "./uploads/temp";
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-    const allClips = [];
+    // Convert all videos (intro + clips + outro) to match format
+    const convertToMp4 = async (inputPath, outputPath) => {
+      return new Promise((resolve, reject) => {
+        ffmpeg(inputPath)
+          .outputOptions([
+            "-c:v libx264",
+            "-preset veryfast",
+            "-crf 23",
+            "-c:a aac",
+            "-b:a 128k",
+            "-movflags +faststart"
+          ])
+          .on("end", () => resolve(outputPath))
+          .on("error", (err) => reject(err))
+          .save(outputPath);
+      });
+    };
 
-    // ✅ Add intro
-    if (fs.existsSync(introPath)) allClips.push(introPath);
+    const convertedPaths = [];
 
-    // ✅ Add uploaded clips
-    allClips.push(...uploadedVideos.map((file) => file.path));
+    if (fs.existsSync(introPath)) {
+      const convertedIntro = path.join(tempDir, `converted-intro-${Date.now()}.mp4`);
+      await convertToMp4(introPath, convertedIntro);
+      convertedPaths.push(convertedIntro);
+    }
 
-    // ✅ Add outro if exists
-    if (outroPath && fs.existsSync(outroPath)) allClips.push(outroPath);
+    for (const file of uploadedVideos) {
+      const convertedClip = path.join(tempDir, `converted-${Date.now()}-${file.originalname}`);
+      await convertToMp4(file.path, convertedClip);
+      convertedPaths.push(convertedClip);
+    }
+
+    if (outroPath && fs.existsSync(outroPath)) {
+      const convertedOutro = path.join(tempDir, `converted-outro-${Date.now()}.mp4`);
+      await convertToMp4(outroPath, convertedOutro);
+      convertedPaths.push(convertedOutro);
+    }
 
     const txtListPath = path.join(tempDir, `${uuidv4()}.txt`);
-    const listFileContent = allClips.map(p => `file '${path.resolve(p)}'`).join("\n");
+    const listFileContent = convertedPaths.map(p => `file '${path.resolve(p)}'`).join("\n");
     fs.writeFileSync(txtListPath, listFileContent);
 
     const outputFilename = `video-${Date.now()}.mp4`;
     const outputPath = path.join("uploads/videos", outputFilename);
 
-    // Step 1: Combine videos
+    // Step 2: Concatenate converted videos
     ffmpeg()
       .input(txtListPath)
       .inputOptions(["-f", "concat", "-safe", "0"])
-      .outputOptions("-c", "copy")
+      .outputOptions(["-c:v libx264", "-preset veryfast", "-crf 23", "-c:a aac"])
       .on("end", () => {
         const finalWithWatermark = path.join("uploads/videos", `wm-${outputFilename}`);
-        const watermarkPath = path.join(__dirname, "../assets/video-watermark.png");
 
-        // Step 2: Add watermark
+        // Step 3: Apply watermark
         ffmpeg(outputPath)
           .input(watermarkPath)
           .complexFilter([
             {
               filter: "overlay",
-              options: { x: 0, y: "main_h-overlay_h" }
+              options: {
+                x: 0,
+                y: "main_h-overlay_h"
+              }
             }
           ])
-          .outputOptions(["-preset", "ultrafast", "-movflags", "+faststart", "-crf", "28"])
+          .outputOptions([
+            "-preset", "ultrafast",
+            "-movflags", "+faststart",
+            "-crf", "28"
+          ])
           .output(finalWithWatermark)
           .on("end", async () => {
             await Video.create({
@@ -89,8 +123,9 @@ exports.combineVideos = async (req, res) => {
         res.status(500).json({ error: "Failed to combine videos" });
       })
       .save(outputPath);
+
   } catch (err) {
-    console.error("❌ Unexpected error:", err);
+    console.error("❌ Video processing error:", err);
     res.status(500).json({ error: "Unexpected error" });
   }
 };

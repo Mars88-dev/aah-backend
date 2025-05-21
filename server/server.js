@@ -7,7 +7,18 @@ const path = require("path");
 const fs = require("fs");
 const OpenAI = require("openai");
 
-// ✅ Ensure upload folders exist on Render/local
+const app = express();
+
+// ✅ Set JSON body size limit and CORS headers before any routes
+app.use(express.json({ limit: "10mb" }));
+app.use(cors({
+  origin: "https://aah-frontend.onrender.com",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+  exposedHeaders: ["Content-Disposition"],
+}));
+
+// ✅ Ensure upload folders exist
 const uploadDirs = ["uploads", "uploads/temp", "uploads/videos", "uploads/images"];
 uploadDirs.forEach(dir => {
   const fullPath = path.join(__dirname, dir);
@@ -16,25 +27,6 @@ uploadDirs.forEach(dir => {
   }
 });
 
-// ✅ Import routes
-const videoRoutes = require("./routes/videoRoutes");
-const agentRoutes = require("./routes/agentRoutes");
-const listingRoutes = require("./routes/listingRoutes");
-const flyerRoutes = require("./routes/flyerRoutes");
-const imageRoutes = require("./routes/imageRoutes");
-const authRoutes = require("./routes/authRoutes");
-
-const app = express();
-app.use(express.json());
-
-// ✅ CORS for frontend (Render)
-app.use(cors({
-  origin: "https://aah-frontend.onrender.com",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
-  exposedHeaders: ["Content-Disposition"],
-}));
-
 // ✅ Static folders
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/templates", express.static(path.join(__dirname, "templates")));
@@ -42,10 +34,22 @@ app.use("/outros", express.static(path.join(__dirname, "assets/outros")));
 app.use("/intro", express.static(path.join(__dirname, "assets/intro")));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
 
-// ✅ Route: Image routes first for priority
-app.use("/api/images", imageRoutes);
+// ✅ Import and use routes
+const videoRoutes = require("./routes/videoRoutes");
+const agentRoutes = require("./routes/agentRoutes");
+const listingRoutes = require("./routes/listingRoutes");
+const flyerRoutes = require("./routes/flyerRoutes");
+const imageRoutes = require("./routes/imageRoutes");
+const authRoutes = require("./routes/authRoutes");
 
-// ✅ OpenAI
+app.use("/api/images", imageRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/agents", agentRoutes);
+app.use("/api/listings", listingRoutes);
+app.use("/api/flyers", flyerRoutes);
+app.use("/api/videos", videoRoutes);
+
+// ✅ OpenAI configuration
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ✅ AI Description Generator
@@ -121,7 +125,7 @@ app.post("/api/generate-image", async (req, res) => {
   }
 });
 
-// ✅ Connect to MongoDB
+// ✅ MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -130,13 +134,6 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ Register all other routes
-app.use("/api/auth", authRoutes);
-app.use("/api/agents", agentRoutes);
-app.use("/api/listings", listingRoutes);
-app.use("/api/flyers", flyerRoutes);
-app.use("/api/videos", videoRoutes);
-
-// ✅ Start the server
+// ✅ Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
