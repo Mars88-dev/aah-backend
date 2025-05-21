@@ -6,23 +6,11 @@ const Dashboard = () => {
   const [listings, setListings] = useState([]);
   const [videos, setVideos] = useState([]);
   const [savedImages, setSavedImages] = useState([]);
-  const [message, setMessage] = useState("");
   const [generatingFlyerId, setGeneratingFlyerId] = useState(null);
   const canvasRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchSavedImages = async () => {
-      try {
-        const res = await axios.get("https://aah-backend.onrender.com/api/images");
-        setSavedImages(res.data);
-      } catch (err) {
-        console.error("❌ Failed to load saved images:", err);
-      }
-    };
-
-    const localImages = JSON.parse(localStorage.getItem("savedImages")) || [];
-    setSavedImages(localImages);
     fetchListings();
     fetchVideos();
     fetchSavedImages();
@@ -37,7 +25,6 @@ const Dashboard = () => {
       setListings(res.data);
     } catch (err) {
       console.error("❌ Error fetching listings:", err);
-      setMessage("❌ Failed to fetch listings.");
     }
   };
 
@@ -50,7 +37,15 @@ const Dashboard = () => {
       setVideos(res.data);
     } catch (err) {
       console.error("❌ Error fetching videos:", err);
-      setMessage("❌ Failed to fetch videos.");
+    }
+  };
+
+  const fetchSavedImages = async () => {
+    try {
+      const res = await axios.get("https://aah-backend.onrender.com/api/images");
+      setSavedImages(res.data);
+    } catch (err) {
+      console.error("❌ Failed to load saved images:", err);
     }
   };
 
@@ -68,7 +63,6 @@ const Dashboard = () => {
         fetchListings();
       } catch (err) {
         console.error("❌ Error deleting listing:", err);
-        setMessage("❌ Failed to delete listing.");
       }
     }
   };
@@ -83,7 +77,6 @@ const Dashboard = () => {
         fetchVideos();
       } catch (err) {
         console.error("❌ Error deleting video:", err);
-        setMessage("❌ Failed to delete video.");
       }
     }
   };
@@ -91,61 +84,38 @@ const Dashboard = () => {
   const handleDeleteImage = async (index, id) => {
     try {
       await axios.delete(`https://aah-backend.onrender.com/api/images/${id}`);
-      const updated = savedImages.filter((_, i) => i !== index);
-      setSavedImages(updated);
+      setSavedImages((prev) => prev.filter((_, i) => i !== index));
     } catch (err) {
       console.error("❌ Failed to delete image:", err);
     }
   };
 
   const handleDownloadImage = (imageSrc) => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = `ai-image-${Date.now()}.png`;
-      link.click();
-    };
-    img.src = imageSrc;
+    const link = document.createElement("a");
+    link.href = imageSrc;
+    link.download = `ai-image-${Date.now()}.png`;
+    link.click();
   };
 
   const handleGenerateFlyer = async (listingId) => {
-    try {
-      setGeneratingFlyerId(listingId);
-      const token = localStorage.getItem("token");
-      const res = await axios.post(
-        "https://aah-backend.onrender.com/api/flyers/generate",
-        { listingId },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        }
-      );
-      const blob = new Blob([res.data], { type: "image/jpeg" });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `flyer-${Date.now()}.jpg`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (err) {
-      console.error("❌ Error generating flyer:", err);
-      setMessage("❌ Failed to generate flyer.");
-    } finally {
-      setGeneratingFlyerId(null);
-    }
+    setGeneratingFlyerId(listingId);
+    const token = localStorage.getItem("token");
+    const res = await axios.post(
+      "https://aah-backend.onrender.com/api/flyers/generate",
+      { listingId },
+      { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" }
+    );
+    const url = window.URL.createObjectURL(res.data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `flyer-${Date.now()}.jpg`);
+    link.click();
+    setGeneratingFlyerId(null);
   };
 
   return (
     <div className="relative min-h-screen px-4 py-10 overflow-hidden text-white bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0a0a23] via-[#1c1c3c] to-black">
-      {/* ✨ Starry background animation layer */}
-      <div className="absolute inset-0 z-0 animate-pulse-slow">
+      <div className="absolute inset-0 animate-pulse-slow">
         {[...Array(200)].map((_, i) => (
           <div
             key={i}
@@ -160,38 +130,50 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="relative z-10">
-        <header className="mb-12 text-center">
-          <h1 className="mb-2 text-4xl font-extrabold sm:text-5xl text-cyan-300 drop-shadow-lg">All About Homes AI Portal</h1>
-          <p className="text-sm text-white/60">Empowering your real estate business with smart tools and stunning marketing materials.</p>
-        </header>
+      <header className="relative z-10 mb-12 text-center">
+        <h1 className="text-4xl font-extrabold text-cyan-300">All About Homes AI Portal</h1>
+        <p className="text-sm text-white/60">Empowering your real estate business with smart tools.</p>
+      </header>
 
-        <section className="mb-14">
-          <div className="grid justify-center grid-cols-2 gap-4 sm:grid-cols-4">
-            <button onClick={handleAddNewListing} className="px-4 py-3 font-bold transition shadow-lg bg-gradient-to-r from-green-400 to-green-600 rounded-xl hover:scale-105">➕ Add Listing</button>
-            <button onClick={handleAddNewVideo} className="px-4 py-3 font-bold transition shadow-lg bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl hover:scale-105">🎥 Add Video</button>
-            <Link to="/description-generator" className="px-4 py-3 font-bold text-center transition shadow-lg bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-xl hover:scale-105">✍️ AI Description</Link>
-            <Link to="/image-generator" className="px-4 py-3 font-bold text-center transition shadow-lg bg-gradient-to-r from-pink-400 to-pink-600 rounded-xl hover:scale-105">🎨 AI Image</Link>
+      <section className="relative z-10 grid grid-cols-2 gap-4 mb-12 sm:grid-cols-4">
+        <button onClick={handleAddNewListing} className="py-3 font-bold bg-green-600 rounded">➕ Listing</button>
+        <button onClick={handleAddNewVideo} className="py-3 font-bold bg-blue-600 rounded">🎥 Video</button>
+        <Link to="/description-generator" className="py-3 font-bold text-center bg-yellow-600 rounded">✍️ AI Desc</Link>
+        <Link to="/image-generator" className="py-3 font-bold text-center bg-pink-600 rounded">🎨 AI Image</Link>
+      </section>
+
+      <section className="relative z-10 mb-16">
+        <h2 className="mb-4 text-2xl text-cyan-300">Listings</h2>
+        {listings.map(listing => (
+          <div key={listing._id} className="p-4 mb-4 bg-gray-800 rounded">
+            <h3 className="font-bold">{listing.title}</h3>
+            <button onClick={() => handleGenerateFlyer(listing._id)} className="px-2 bg-green-500 rounded">Flyer</button>
+            <button onClick={() => handleEdit(listing._id)} className="px-2 bg-blue-500 rounded">Edit</button>
+            <button onClick={() => handleDelete(listing._id)} className="px-2 bg-red-500 rounded">Delete</button>
           </div>
-        </section>
+        ))}
+      </section>
 
-        {savedImages.length > 0 && (
-          <section className="mb-16">
-            <h2 className="pb-2 mb-6 text-3xl font-bold border-b text-cyan-300 border-cyan-700">🖼️ Saved AI Images</h2>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-              {savedImages.map((img, index) => (
-                <div key={index} className="relative flex flex-col h-full p-2 bg-gradient-to-tr from-slate-800 to-slate-900 rounded-xl">
-                  <img src={img.url || img} alt={`AI ${index}`} className="object-cover w-full h-48 rounded-md" />
-                  <div className="flex items-center justify-between mt-2">
-                    <button onClick={() => handleDownloadImage(img.url || img)} className="flex-1 px-3 py-1 mr-1 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">⬇ Save</button>
-                    <button onClick={() => handleDeleteImage(index, img._id)} className="flex-1 px-3 py-1 ml-1 text-xs text-white bg-red-600 rounded hover:bg-red-700">🗑️ Delete</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
+      <section className="relative z-10 mb-16">
+        <h2 className="mb-4 text-2xl text-cyan-300">Videos</h2>
+        {videos.map(video => (
+          <div key={video._id} className="p-4 mb-4 bg-gray-800 rounded">
+            <video src={`https://aah-backend.onrender.com/uploads/videos/${video.filename}`} controls className="rounded" />
+            <button onClick={() => handleDeleteVideo(video._id)} className="px-2 bg-red-500 rounded">Delete</button>
+          </div>
+        ))}
+      </section>
+
+      <section className="relative z-10 mb-16">
+        <h2 className="mb-4 text-2xl text-cyan-300">AI Images</h2>
+        {savedImages.map((img, idx) => (
+          <div key={idx} className="p-4 mb-4 bg-gray-800 rounded">
+            <img src={img.url} alt="AI" className="rounded" />
+            <button onClick={() => handleDownloadImage(img.url)} className="px-2 bg-blue-500 rounded">Download</button>
+            <button onClick={() => handleDeleteImage(idx, img._id)} className="px-2 bg-red-500 rounded">Delete</button>
+          </div>
+        ))}
+      </section>
 
       <canvas ref={canvasRef} className="hidden"></canvas>
     </div>
