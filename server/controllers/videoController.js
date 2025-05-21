@@ -15,8 +15,7 @@ exports.combineVideos = async (req, res) => {
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
     const introPath = path.join(__dirname, "../assets/intro/intro.mp4");
-    const outroFileUploaded = req.files?.["outroFile"]?.[0];
-    const outroFileName = outroFileUploaded?.originalname;
+    const outroFileName = req.body.outroFile; // ✅ Read from body, not files
     const outroPath = outroFileName
       ? path.join(__dirname, `../assets/outros/${outroFileName}`)
       : null;
@@ -31,13 +30,13 @@ exports.combineVideos = async (req, res) => {
 
     const allClips = [];
 
-    // ✅ Always push intro if it exists
+    // ✅ Add intro
     if (fs.existsSync(introPath)) allClips.push(introPath);
 
-    // ✅ Uploaded clips
+    // ✅ Add uploaded clips
     allClips.push(...uploadedVideos.map((file) => file.path));
 
-    // ✅ Optional outro
+    // ✅ Add outro if exists
     if (outroPath && fs.existsSync(outroPath)) allClips.push(outroPath);
 
     const txtListPath = path.join(tempDir, `${uuidv4()}.txt`);
@@ -47,7 +46,7 @@ exports.combineVideos = async (req, res) => {
     const outputFilename = `video-${Date.now()}.mp4`;
     const outputPath = path.join("uploads/videos", outputFilename);
 
-    // Step 1: Combine clips
+    // Step 1: Combine videos
     ffmpeg()
       .input(txtListPath)
       .inputOptions(["-f", "concat", "-safe", "0"])
