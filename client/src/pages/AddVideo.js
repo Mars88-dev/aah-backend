@@ -4,12 +4,25 @@ import { useNavigate } from "react-router-dom";
 
 const AddVideo = () => {
   const [clips, setClips] = useState([]);
-  const [outro, setOutro] = useState("");
+  const [outro, setOutro] = useState(null);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
   const handleFileChange = (e) => {
     setClips(e.target.files);
+  };
+
+  const handleOutroChange = async (e) => {
+    const outroFilename = e.target.value;
+
+    if (outroFilename) {
+      const response = await fetch(`/outros/${outroFilename}`);
+      const blob = await response.blob();
+      const file = new File([blob], outroFilename, { type: "video/mp4" });
+      setOutro(file);
+    } else {
+      setOutro(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -27,7 +40,10 @@ const AddVideo = () => {
       for (let i = 0; i < clips.length; i++) {
         formData.append("clips", clips[i]);
       }
-      formData.append("outroFile", outro);
+
+      if (outro) {
+        formData.append("outroFile", outro);
+      }
 
       const res = await axios.post(
         "https://aah-backend.onrender.com/api/videos/combine",
@@ -84,9 +100,9 @@ const AddVideo = () => {
           />
 
           <select
-            value={outro}
-            onChange={(e) => setOutro(e.target.value)}
+            onChange={handleOutroChange}
             className="w-full px-4 py-2 rounded bg-slate-700"
+            defaultValue=""
           >
             <option value="">Select Outro (Optional)</option>
             <option value="paula.mp4">Paula</option>

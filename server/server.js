@@ -9,14 +9,16 @@ const OpenAI = require("openai");
 
 const app = express();
 
-// ✅ Set JSON body size limit and CORS headers before any routes
-app.use(express.json({ limit: "10mb" }));
+// ✅ Middleware setup for large uploads and proper request handling
 app.use(cors({
   origin: "https://aah-frontend.onrender.com",
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
   exposedHeaders: ["Content-Disposition"],
 }));
+
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // ✅ Ensure upload folders exist
 const uploadDirs = ["uploads", "uploads/temp", "uploads/videos", "uploads/images"];
@@ -127,10 +129,7 @@ app.post("/api/generate-image", async (req, res) => {
 
 // ✅ MongoDB connection
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
