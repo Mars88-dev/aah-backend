@@ -4,7 +4,6 @@ node_modules/
 *.dll
 *.pyd
 *.lib
-*.mp4
 *.zip
 .env
 server/.env

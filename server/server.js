@@ -33,7 +33,7 @@ uploadDirs.forEach(dir => {
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/templates", express.static(path.join(__dirname, "templates")));
 app.use("/outros", express.static(path.join(__dirname, "assets/outros")));
-app.use("/intro", express.static(path.join(__dirname, "assets/intro")));
+app.use("/assets", express.static(path.join(__dirname, "assets")));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
 
 // ✅ Import and use routes
