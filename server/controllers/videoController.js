@@ -70,7 +70,8 @@ exports.combineVideos = async (req, res) => {
       ffmpeg()
         .input(txtListPath)
         .inputOptions(["-f", "concat", "-safe", "0"])
-        .outputOptions(["-c:v", "libx264", "-c:a", "aac"])
+        .addOption("-c:v", "libx264")
+        .addOption("-c:a", "aac")
         .on("end", resolve)
         .on("error", reject)
         .save(outputPath);
