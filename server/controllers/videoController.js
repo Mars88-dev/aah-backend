@@ -26,11 +26,11 @@ exports.combineVideos = async (req, res) => {
       return res.status(400).json({ error: "No video clips uploaded" });
     }
 
-    const tempDir = "./uploads/temp";
+    const tempDir = path.join(__dirname, "../uploads/temp");
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-    // Convert all videos (intro + clips + outro) to match format
-    const convertToMp4 = async (inputPath, outputPath) => {
+    // Utility function to convert videos to MP4
+    const convertToMp4 = (inputPath, outputPath) => {
       return new Promise((resolve, reject) => {
         ffmpeg(inputPath)
           .outputOptions([
@@ -42,90 +42,82 @@ exports.combineVideos = async (req, res) => {
             "-movflags +faststart"
           ])
           .on("end", () => resolve(outputPath))
-          .on("error", (err) => reject(err))
+          .on("error", reject)
           .save(outputPath);
       });
     };
 
     const convertedPaths = [];
 
+    // Convert intro video
     if (fs.existsSync(introPath)) {
-      const convertedIntro = path.join(tempDir, `converted-intro-${Date.now()}.mp4`);
+      const convertedIntro = path.join(tempDir, `intro-${uuidv4()}.mp4`);
       await convertToMp4(introPath, convertedIntro);
       convertedPaths.push(convertedIntro);
     }
 
+    // Convert uploaded clips
     for (const file of uploadedVideos) {
-      const convertedClip = path.join(tempDir, `converted-${Date.now()}-${file.originalname}`);
+      const convertedClip = path.join(tempDir, `clip-${uuidv4()}.mp4`);
       await convertToMp4(file.path, convertedClip);
       convertedPaths.push(convertedClip);
     }
 
+    // Convert outro video
     if (outroPath && fs.existsSync(outroPath)) {
-      const convertedOutro = path.join(tempDir, `converted-outro-${Date.now()}.mp4`);
+      const convertedOutro = path.join(tempDir, `outro-${uuidv4()}.mp4`);
       await convertToMp4(outroPath, convertedOutro);
       convertedPaths.push(convertedOutro);
     }
 
-    const txtListPath = path.join(tempDir, `${uuidv4()}.txt`);
-    const listFileContent = convertedPaths.map(p => `file '${path.resolve(p)}'`).join("\n");
-    fs.writeFileSync(txtListPath, listFileContent);
+    // Generate concat file list for ffmpeg
+    const concatListPath = path.join(tempDir, `${uuidv4()}-list.txt`);
+    const concatListContent = convertedPaths.map(p => `file '${p}'`).join("\n");
+    fs.writeFileSync(concatListPath, concatListContent);
 
-    const outputFilename = `video-${Date.now()}.mp4`;
-    const outputPath = path.join("uploads/videos", outputFilename);
+    // Output paths
+    const combinedVideoPath = path.join(tempDir, `combined-${uuidv4()}.mp4`);
+    const finalVideoPath = path.join(__dirname, "../uploads/videos", `wm-video-${Date.now()}.mp4`);
 
-    // Step 2: Concatenate converted videos
+    // Concatenate videos
     ffmpeg()
-      .input(txtListPath)
-      .inputOptions(["-f", "concat", "-safe", "0"])
+      .input(concatListPath)
+      .inputOptions(["-f concat", "-safe 0"])
       .outputOptions(["-c:v libx264", "-preset veryfast", "-crf 23", "-c:a aac"])
       .on("end", () => {
-        const finalWithWatermark = path.join("uploads/videos", `wm-${outputFilename}`);
-
-        // Step 3: Apply watermark
-        ffmpeg(outputPath)
+        // Apply watermark
+        ffmpeg(combinedVideoPath)
           .input(watermarkPath)
-          .complexFilter([
-            {
-              filter: "overlay",
-              options: {
-                x: 0,
-                y: "main_h-overlay_h"
-              }
-            }
-          ])
-          .outputOptions([
-            "-preset", "ultrafast",
-            "-movflags", "+faststart",
-            "-crf", "28"
-          ])
-          .output(finalWithWatermark)
+          .complexFilter("overlay=0:main_h-overlay_h")
+          .outputOptions(["-preset ultrafast", "-crf 28", "-movflags +faststart"])
           .on("end", async () => {
             await Video.create({
               agentId: userObjectId,
-              filename: outputFilename,
-              filenameWithOutro: `wm-${outputFilename}`,
+              filename: path.basename(combinedVideoPath),
+              filenameWithOutro: path.basename(finalVideoPath),
             });
 
-            res.download(finalWithWatermark, () => {
-              fs.unlinkSync(txtListPath);
-              fs.unlinkSync(outputPath);
+            res.download(finalVideoPath, () => {
+              // Cleanup temporary files
+              [concatListPath, combinedVideoPath, ...convertedPaths].forEach(file => {
+                if (fs.existsSync(file)) fs.unlinkSync(file);
+              });
             });
           })
           .on("error", (err) => {
-            console.error("❌ Error adding watermark:", err);
-            res.status(500).json({ error: "Failed to add watermark" });
+            console.error("❌ Error applying watermark:", err);
+            res.status(500).json({ error: "Failed to apply watermark" });
           })
-          .run();
+          .save(finalVideoPath);
       })
       .on("error", (err) => {
         console.error("❌ Error combining videos:", err);
         res.status(500).json({ error: "Failed to combine videos" });
       })
-      .save(outputPath);
+      .save(combinedVideoPath);
 
   } catch (err) {
-    console.error("❌ Video processing error:", err);
-    res.status(500).json({ error: "Unexpected error" });
+    console.error("❌ Unexpected video processing error:", err);
+    res.status(500).json({ error: "Unexpected error occurred during video processing" });
   }
 };
