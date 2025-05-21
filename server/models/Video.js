@@ -4,7 +4,7 @@ const videoSchema = new mongoose.Schema(
   {
     agentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // ✅ Correct: referencing your User model
+      ref: "User",
       required: true,
     },
     filename: {
@@ -12,18 +12,14 @@ const videoSchema = new mongoose.Schema(
       required: true,
     },
     filenameWithOutro: {
-      type: String, // ✅ Optional field for outro-added videos
-    },
-    introText: {
       type: String,
-      default: "Welcome to All About Homes, The Home of Great Agents",
     },
     createdAt: {
       type: Date,
       default: Date.now,
     },
   },
-  { collection: "videos" } // ✅ Optional override — good for clarity
+  { collection: "videos" }
 );
 
 module.exports = mongoose.model("Video", videoSchema);

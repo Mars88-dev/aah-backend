@@ -44,22 +44,12 @@ exports.combineVideos = async (req, res) => {
     ffmpeg()
       .input(txtListPath)
       .inputOptions(["-f", "concat", "-safe", "0"])
-      .outputOptions([
-        "-c:v libx264",
-        "-preset", "ultrafast",
-        "-c:a aac",
-        "-movflags", "faststart",
-        "-crf", "23"
-      ])
+      .outputOptions(["-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", "-movflags", "faststart", "-crf", "23"])
       .on("end", () => {
         ffmpeg(combinedPath)
           .input(watermarkPath)
           .complexFilter("overlay=0:main_h-overlay_h")
-          .outputOptions([
-            "-preset", "ultrafast",
-            "-movflags", "faststart",
-            "-crf", "28"
-          ])
+          .outputOptions(["-preset", "ultrafast", "-movflags", "faststart", "-crf", "28"])
           .save(watermarkedPath)
           .on("end", async () => {
             await Video.create({
