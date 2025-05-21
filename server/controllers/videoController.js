@@ -35,8 +35,9 @@ exports.combineVideos = async (req, res) => {
         ffmpeg(inputPath)
           .videoCodec("libx264")
           .audioCodec("aac")
-          .addOption("-crf", "23")
-          .addOption("-preset", "veryfast")
+          .size("1280x720")
+          .addOption("-crf", "28")
+          .addOption("-preset", "medium")
           .on("end", () => {
             if (fs.statSync(outputPath).size < 1024) {
               return reject(new Error(`❌ Output too small, likely invalid: ${outputPath}`));
@@ -51,36 +52,42 @@ exports.combineVideos = async (req, res) => {
     const convertedPaths = [];
 
     console.log("📥 Intro Path:", introPath);
+    let convertedIntro = null;
     if (fs.existsSync(introPath)) {
-      const convertedIntro = path.join(tempDir, `intro-${Date.now()}.mp4`);
+      convertedIntro = path.join(tempDir, `intro-${Date.now()}.mp4`);
       console.log("✅ Intro found. Converting...");
       await convertToMp4(introPath, convertedIntro);
-      convertedPaths.push(path.resolve(convertedIntro));
     } else {
       console.log("⚠️ Intro NOT found:", introPath);
     }
 
+    const convertedClips = [];
     for (const file of uploadedVideos) {
       const convertedClip = path.join(tempDir, `clip-${Date.now()}-${file.originalname}`);
       await convertToMp4(file.path, convertedClip);
-      convertedPaths.push(path.resolve(convertedClip));
+      convertedClips.push(path.resolve(convertedClip));
     }
 
+    let convertedOutro = null;
     if (outroPath && fs.existsSync(outroPath)) {
-      const convertedOutro = path.join(tempDir, `outro-${Date.now()}.mp4`);
+      convertedOutro = path.join(tempDir, `outro-${Date.now()}.mp4`);
       console.log("✅ Outro found. Converting:", outroPath);
       await convertToMp4(outroPath, convertedOutro);
-      convertedPaths.push(path.resolve(convertedOutro));
     } else {
       console.log("ℹ️ No outro or missing:", outroPath);
     }
 
-    if (convertedPaths.length === 0) {
+    const combinedPathList = [];
+    if (convertedIntro) combinedPathList.push(path.resolve(convertedIntro));
+    combinedPathList.push(...convertedClips);
+    if (convertedOutro) combinedPathList.push(path.resolve(convertedOutro));
+
+    if (combinedPathList.length === 0) {
       return res.status(400).json({ error: "No valid video segments to combine." });
     }
 
     const txtListPath = path.join(tempDir, `${uuidv4()}.txt`);
-    const listFileContent = convertedPaths.map(p => `file '${p.replace(/'/g, "'\\''")}'`).join("\n");
+    const listFileContent = combinedPathList.map(p => `file '${p.replace(/'/g, "'\\''")}'`).join("\n");
     console.log("📝 Creating ffmpeg .txt list:", txtListPath);
     console.log(listFileContent);
     fs.writeFileSync(txtListPath, listFileContent);
@@ -101,11 +108,18 @@ exports.combineVideos = async (req, res) => {
 
     const finalWithWatermark = path.join(__dirname, `../uploads/videos/wm-${outputFilename}`);
     await new Promise((resolve, reject) => {
-      ffmpeg(outputPath)
+      ffmpeg()
+        .input(outputPath)
         .input(watermarkPath)
-        .complexFilter("overlay=0:main_h-overlay_h")
-        .addOption("-crf", "23")
-        .addOption("-preset", "veryfast")
+        .complexFilter([
+          "[0:v]scale=1280:720[base]",
+          "[1:v]scale=1280:100[wm]",
+          "[base][wm]overlay=(main_w-overlay_w)/2:main_h-overlay_h"
+        ])
+        .videoCodec("libx264")
+        .audioCodec("aac")
+        .addOption("-crf", "28")
+        .addOption("-preset", "medium")
         .on("end", resolve)
         .on("error", reject)
         .save(finalWithWatermark);
