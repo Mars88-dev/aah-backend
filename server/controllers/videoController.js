@@ -13,9 +13,11 @@ exports.combineVideos = async (req, res) => {
     }
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
+    const outroSelected = req.body.outro; // example: "paula"
     const introPath = path.resolve(__dirname, "../assets/intro/intro.mp4");
-    const outroFile = req.files["outroFile"]?.[0];
-    const outroPath = outroFile ? path.resolve(outroFile.path) : null;
+    const outroPath = outroSelected
+      ? path.resolve(__dirname, `../assets/outro/${outroSelected}.mp4`)
+      : null;
     const watermarkPath = path.resolve(__dirname, "../assets/video-watermark.png");
     const uploadedVideos = req.files["clips"];
 
@@ -35,7 +37,7 @@ exports.combineVideos = async (req, res) => {
         ffmpeg(inputPath)
           .videoCodec("libx264")
           .audioCodec("aac")
-          .size("1280x720")
+          .size("854x480")
           .addOption("-crf", "30")
           .addOption("-preset", "fast")
           .on("end", () => {
@@ -71,7 +73,7 @@ exports.combineVideos = async (req, res) => {
     let convertedOutro = null;
     if (outroPath && fs.existsSync(outroPath)) {
       convertedOutro = path.join(tempDir, `outro-${Date.now()}.mp4`);
-      if (fs.existsSync(outroPath) && fs.statSync(outroPath).size > 1024) {
+      if (fs.statSync(outroPath).size > 1024) {
         console.log("✅ Outro found. Converting:", outroPath);
         await convertToMp4(outroPath, convertedOutro);
       } else {
@@ -143,12 +145,12 @@ exports.combineVideos = async (req, res) => {
       if (f && fs.existsSync(f)) fs.unlinkSync(f);
     });
 
-    // Debug mode returns metadata instead of download
     if (req.query.debug === "true") {
       return res.json({
         outputFile: `wm-${outputFilename}`,
         sizeInMB: (finalStats.size / (1024 * 1024)).toFixed(2),
-        created: true,
+        outroUsed: outroPath,
+        created: true
       });
     }
 
