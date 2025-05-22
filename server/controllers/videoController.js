@@ -35,9 +35,9 @@ exports.combineVideos = async (req, res) => {
         ffmpeg(inputPath)
           .videoCodec("libx264")
           .audioCodec("aac")
-          .size("1280x720")
-          .addOption("-crf", "28")
-          .addOption("-preset", "medium")
+          .size("854x480")
+          .addOption("-crf", "30")
+          .addOption("-preset", "fast")
           .on("end", () => {
             if (fs.statSync(outputPath).size < 1024) {
               return reject(new Error(`❌ Output too small, likely invalid: ${outputPath}`));
@@ -71,8 +71,13 @@ exports.combineVideos = async (req, res) => {
     let convertedOutro = null;
     if (outroPath && fs.existsSync(outroPath)) {
       convertedOutro = path.join(tempDir, `outro-${Date.now()}.mp4`);
-      console.log("✅ Outro found. Converting:", outroPath);
-      await convertToMp4(outroPath, convertedOutro);
+      if (fs.existsSync(outroPath) && fs.statSync(outroPath).size > 1024) {
+        console.log("✅ Outro found. Converting:", outroPath);
+        await convertToMp4(outroPath, convertedOutro);
+      } else {
+        console.log("❌ Outro file invalid or empty, skipping:", outroPath);
+        convertedOutro = null;
+      }
     } else {
       console.log("ℹ️ No outro or missing:", outroPath);
     }
@@ -112,14 +117,14 @@ exports.combineVideos = async (req, res) => {
         .input(outputPath)
         .input(watermarkPath)
         .complexFilter([
-          "[0:v]scale=1280:720[base]",
-          "[1:v]scale=1280:100[wm]",
+          "[0:v]scale=854:480[base]",
+          "[1:v]scale=854:60[wm]",
           "[base][wm]overlay=(main_w-overlay_w)/2:main_h-overlay_h"
         ])
         .videoCodec("libx264")
         .audioCodec("aac")
-        .addOption("-crf", "28")
-        .addOption("-preset", "medium")
+        .addOption("-crf", "30")
+        .addOption("-preset", "fast")
         .on("end", resolve)
         .on("error", reject)
         .save(finalWithWatermark);
@@ -130,6 +135,22 @@ exports.combineVideos = async (req, res) => {
       filename: outputFilename,
       filenameWithOutro: `wm-${outputFilename}`,
     });
+
+    const finalStats = fs.statSync(finalWithWatermark);
+
+    // Clean up temp files
+    [convertedIntro, ...convertedClips, convertedOutro, txtListPath].forEach(f => {
+      if (f && fs.existsSync(f)) fs.unlinkSync(f);
+    });
+
+    // Debug mode returns metadata instead of download
+    if (req.query.debug === "true") {
+      return res.json({
+        outputFile: `wm-${outputFilename}`,
+        sizeInMB: (finalStats.size / (1024 * 1024)).toFixed(2),
+        created: true,
+      });
+    }
 
     res.download(finalWithWatermark);
   } catch (err) {
