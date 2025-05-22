@@ -32,7 +32,7 @@ uploadDirs.forEach(dir => {
 // ✅ Static folders
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/templates", express.static(path.join(__dirname, "templates")));
-app.use("/outros", express.static(path.join(__dirname, "assets/outros")));
+app.use("/outro", express.static(path.join(__dirname, "assets/outro")));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
 app.use("/assets", express.static(path.join(__dirname, "assets")));
 

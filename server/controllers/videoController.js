@@ -35,7 +35,7 @@ exports.combineVideos = async (req, res) => {
         ffmpeg(inputPath)
           .videoCodec("libx264")
           .audioCodec("aac")
-          .size("854x480")
+          .size("1280x720")
           .addOption("-crf", "30")
           .addOption("-preset", "fast")
           .on("end", () => {
