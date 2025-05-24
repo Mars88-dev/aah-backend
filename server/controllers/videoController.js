@@ -2,24 +2,14 @@ const fs = require("fs");
 const path = require("path");
 const ffmpeg = require("fluent-ffmpeg");
 const { v4: uuidv4 } = require("uuid");
-const mongoose = require("mongoose");
-const Video = require("../models/Video");
 
 exports.combineVideos = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId || userId === "null") {
-      return res.status(400).json({ error: "Missing or invalid userId" });
-    }
-
-    const userObjectId = new mongoose.Types.ObjectId(userId);
-    const outroSelected = req.body.outro; // example: "paula"
-    const introPath = path.resolve(__dirname, "../assets/intro/intro.mp4");
-    const outroPath = outroSelected
-      ? path.resolve(__dirname, `../assets/outro/${outroSelected}.mp4`)
-      : null;
-    const watermarkPath = path.resolve(__dirname, "../assets/video-watermark.png");
     const uploadedVideos = req.files["clips"];
+    const outroFile = req.files["outroFile"]?.[0]; // Uploaded outro
+
+    const introPath = path.resolve(__dirname, "../assets/intro/intro.mp4");
+    const watermarkPath = path.resolve(__dirname, "../assets/video-watermark.png");
 
     if (!uploadedVideos || uploadedVideos.length === 0) {
       return res.status(400).json({ error: "No video clips uploaded" });
@@ -51,43 +41,30 @@ exports.combineVideos = async (req, res) => {
       });
     };
 
-    const convertedPaths = [];
+    const combinedPathList = [];
 
-    console.log("📥 Intro Path:", introPath);
+    // ✅ Convert intro
     let convertedIntro = null;
     if (fs.existsSync(introPath)) {
       convertedIntro = path.join(tempDir, `intro-${Date.now()}.mp4`);
-      console.log("✅ Intro found. Converting...");
       await convertToMp4(introPath, convertedIntro);
-    } else {
-      console.log("⚠️ Intro NOT found:", introPath);
+      combinedPathList.push(path.resolve(convertedIntro));
     }
 
-    const convertedClips = [];
+    // ✅ Convert uploaded clips
     for (const file of uploadedVideos) {
       const convertedClip = path.join(tempDir, `clip-${Date.now()}-${file.originalname}`);
       await convertToMp4(file.path, convertedClip);
-      convertedClips.push(path.resolve(convertedClip));
+      combinedPathList.push(path.resolve(convertedClip));
     }
 
+    // ✅ Convert outro if uploaded
     let convertedOutro = null;
-    if (outroPath && fs.existsSync(outroPath)) {
+    if (outroFile && fs.existsSync(outroFile.path)) {
       convertedOutro = path.join(tempDir, `outro-${Date.now()}.mp4`);
-      if (fs.statSync(outroPath).size > 1024) {
-        console.log("✅ Outro found. Converting:", outroPath);
-        await convertToMp4(outroPath, convertedOutro);
-      } else {
-        console.log("❌ Outro file invalid or empty, skipping:", outroPath);
-        convertedOutro = null;
-      }
-    } else {
-      console.log("ℹ️ No outro or missing:", outroPath);
+      await convertToMp4(outroFile.path, convertedOutro);
+      combinedPathList.push(path.resolve(convertedOutro));
     }
-
-    const combinedPathList = [];
-    if (convertedIntro) combinedPathList.push(path.resolve(convertedIntro));
-    combinedPathList.push(...convertedClips);
-    if (convertedOutro) combinedPathList.push(path.resolve(convertedOutro));
 
     if (combinedPathList.length === 0) {
       return res.status(400).json({ error: "No valid video segments to combine." });
@@ -95,12 +72,9 @@ exports.combineVideos = async (req, res) => {
 
     const txtListPath = path.join(tempDir, `${uuidv4()}.txt`);
     const listFileContent = combinedPathList.map(p => `file '${p.replace(/'/g, "'\\''")}'`).join("\n");
-    console.log("📝 Creating ffmpeg .txt list:", txtListPath);
-    console.log(listFileContent);
     fs.writeFileSync(txtListPath, listFileContent);
 
-    const outputFilename = `video-${Date.now()}.mp4`;
-    const outputPath = path.join(__dirname, `../uploads/videos/${outputFilename}`);
+    const outputPath = path.join(tempDir, `combined-${Date.now()}.mp4`);
 
     await new Promise((resolve, reject) => {
       ffmpeg()
@@ -113,7 +87,8 @@ exports.combineVideos = async (req, res) => {
         .save(outputPath);
     });
 
-    const finalWithWatermark = path.join(__dirname, `../uploads/videos/wm-${outputFilename}`);
+    // ✅ Apply watermark
+    const finalPath = path.join(tempDir, `final-${Date.now()}.mp4`);
     await new Promise((resolve, reject) => {
       ffmpeg()
         .input(outputPath)
@@ -129,32 +104,17 @@ exports.combineVideos = async (req, res) => {
         .addOption("-preset", "fast")
         .on("end", resolve)
         .on("error", reject)
-        .save(finalWithWatermark);
+        .save(finalPath);
     });
 
-    await Video.create({
-      agentId: userObjectId,
-      filename: outputFilename,
-      filenameWithOutro: `wm-${outputFilename}`,
+    // ✅ Return video for download only (no save to Mongo or disk)
+    res.download(finalPath, "listing-video.mp4", () => {
+      // Cleanup
+      [convertedIntro, ...combinedPathList, txtListPath, outputPath, finalPath]
+        .filter(Boolean)
+        .forEach(f => { if (fs.existsSync(f)) fs.unlinkSync(f); });
     });
 
-    const finalStats = fs.statSync(finalWithWatermark);
-
-    // Clean up temp files
-    [convertedIntro, ...convertedClips, convertedOutro, txtListPath].forEach(f => {
-      if (f && fs.existsSync(f)) fs.unlinkSync(f);
-    });
-
-    if (req.query.debug === "true") {
-      return res.json({
-        outputFile: `wm-${outputFilename}`,
-        sizeInMB: (finalStats.size / (1024 * 1024)).toFixed(2),
-        outroUsed: outroPath,
-        created: true
-      });
-    }
-
-    res.download(finalWithWatermark);
   } catch (err) {
     console.error("❌ Video combination failed:", err);
     res.status(500).json({ error: "Video combination failed." });
