@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 const AddVideo = () => {
   const [clips, setClips] = useState([]);
-  const [outro, setOutro] = useState(null);
+  const [outro, setOutro] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
@@ -12,17 +12,8 @@ const AddVideo = () => {
     setClips(e.target.files);
   };
 
-  const handleOutroChange = async (e) => {
-    const outroFilename = e.target.value;
-
-    if (outroFilename) {
-      const response = await fetch(`/outros/${outroFilename}`);
-      const blob = await response.blob();
-      const file = new File([blob], outroFilename, { type: "video/mp4" });
-      setOutro(file);
-    } else {
-      setOutro(null);
-    }
+  const handleOutroChange = (e) => {
+    setOutro(e.target.value); // send just the filename like "paula.mp4"
   };
 
   const handleSubmit = async (e) => {
@@ -42,7 +33,7 @@ const AddVideo = () => {
       }
 
       if (outro) {
-        formData.append("outroFile", outro);
+        formData.append("outro", outro); // ✅ send just the string
       }
 
       const res = await axios.post(
@@ -88,7 +79,9 @@ const AddVideo = () => {
       </div>
 
       <div className="relative z-10 max-w-xl p-8 mx-auto mt-10 text-white border rounded shadow-xl bg-slate-800/80 backdrop-blur-md border-white/10">
-        <h1 className="mb-6 text-3xl font-bold text-center text-cyan-300">🎬 Generate Property Video</h1>
+        <h1 className="mb-6 text-3xl font-bold text-center text-cyan-300">
+          🎬 Generate Property Video
+        </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input

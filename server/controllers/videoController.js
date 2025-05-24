@@ -6,9 +6,13 @@ const { v4: uuidv4 } = require("uuid");
 exports.combineVideos = async (req, res) => {
   try {
     const uploadedVideos = req.files["clips"];
-    const outroFile = req.files["outroFile"]?.[0]; // Uploaded outro
+    const outroFilename = req.body.outro; // e.g. "paula.mp4"
 
     const introPath = path.resolve(__dirname, "../assets/intro/intro.mp4");
+    const outroPath = outroFilename
+      ? path.resolve(__dirname, `../assets/outro/${outroFilename}`)
+      : null;
+
     const watermarkPath = path.resolve(__dirname, "../assets/video-watermark.png");
 
     if (!uploadedVideos || uploadedVideos.length === 0) {
@@ -32,7 +36,7 @@ exports.combineVideos = async (req, res) => {
           .addOption("-preset", "fast")
           .on("end", () => {
             if (fs.statSync(outputPath).size < 1024) {
-              return reject(new Error(`❌ Output too small, likely invalid: ${outputPath}`));
+              return reject(new Error(`❌ Output too small: ${outputPath}`));
             }
             resolve(outputPath);
           })
@@ -58,12 +62,19 @@ exports.combineVideos = async (req, res) => {
       combinedPathList.push(path.resolve(convertedClip));
     }
 
-    // ✅ Convert outro if uploaded
+    // ✅ Convert outro from static assets if selected
     let convertedOutro = null;
-    if (outroFile && fs.existsSync(outroFile.path)) {
+    if (outroPath && fs.existsSync(outroPath)) {
       convertedOutro = path.join(tempDir, `outro-${Date.now()}.mp4`);
-      await convertToMp4(outroFile.path, convertedOutro);
-      combinedPathList.push(path.resolve(convertedOutro));
+      if (fs.statSync(outroPath).size > 1024) {
+        console.log("✅ Outro found. Converting:", outroPath);
+        await convertToMp4(outroPath, convertedOutro);
+        combinedPathList.push(path.resolve(convertedOutro));
+      } else {
+        console.log("❌ Outro file invalid or empty, skipping:", outroPath);
+      }
+    } else if (outroFilename) {
+      console.log("⚠️ Outro not found at path:", outroPath);
     }
 
     if (combinedPathList.length === 0) {
@@ -107,16 +118,15 @@ exports.combineVideos = async (req, res) => {
         .save(finalPath);
     });
 
-    // ✅ Return video for download only (no save to Mongo or disk)
+    // ✅ Return download (no save to DB or storage)
     res.download(finalPath, "listing-video.mp4", () => {
-      // Cleanup
       [convertedIntro, ...combinedPathList, txtListPath, outputPath, finalPath]
         .filter(Boolean)
         .forEach(f => { if (fs.existsSync(f)) fs.unlinkSync(f); });
     });
 
   } catch (err) {
-    console.error("❌ Video combination failed:", err);
+    console.error("❌ Video combination failed:", err.message);
     res.status(500).json({ error: "Video combination failed." });
   }
 };
