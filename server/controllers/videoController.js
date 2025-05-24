@@ -31,8 +31,8 @@ exports.combineVideos = async (req, res) => {
         ffmpeg(inputPath)
           .videoCodec("libx264")
           .audioCodec("aac")
-          .size("854x480")
-          .addOption("-crf", "30")
+          .size("1280x720") // 🔼 UPGRADED TO HD
+          .addOption("-crf", "26")
           .addOption("-preset", "fast")
           .on("end", () => {
             if (fs.statSync(outputPath).size < 1024) {
@@ -98,27 +98,26 @@ exports.combineVideos = async (req, res) => {
         .save(outputPath);
     });
 
-    // ✅ Apply watermark
+    // ✅ Apply watermark @ 720p
     const finalPath = path.join(tempDir, `final-${Date.now()}.mp4`);
     await new Promise((resolve, reject) => {
       ffmpeg()
         .input(outputPath)
         .input(watermarkPath)
         .complexFilter([
-          "[0:v]scale=854:480[base]",
-          "[1:v]scale=854:60[wm]",
+          "[0:v]scale=1280:720[base]",
+          "[1:v]scale=1280:80[wm]",
           "[base][wm]overlay=(main_w-overlay_w)/2:main_h-overlay_h"
         ])
         .videoCodec("libx264")
         .audioCodec("aac")
-        .addOption("-crf", "30")
+        .addOption("-crf", "26")
         .addOption("-preset", "fast")
         .on("end", resolve)
         .on("error", reject)
         .save(finalPath);
     });
 
-    // ✅ Return download (no save to DB or storage)
     res.download(finalPath, "listing-video.mp4", () => {
       [convertedIntro, ...combinedPathList, txtListPath, outputPath, finalPath]
         .filter(Boolean)
