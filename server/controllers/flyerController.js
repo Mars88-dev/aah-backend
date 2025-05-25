@@ -33,7 +33,7 @@ exports.generateFlyer = async (req, res) => {
     // ✅ Price (moved down from 485.7 to 495)
     ctx.textAlign = "left";
     ctx.font = "bold 36px Arial";
-    ctx.fillStyle = "#002060";
+    ctx.fillStyle = "#ffffff";
     ctx.fillText(`R ${listing.price}`, 769.6, 495);
 
     // ✅ Location (moved down from 573 to 590)
