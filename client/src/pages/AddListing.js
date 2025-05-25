@@ -102,6 +102,7 @@ const AddListing = () => {
 
         <select name="template" onChange={handleChange} className="w-full px-4 py-2 rounded bg-slate-800">
           <option value="">Select Template</option>
+          <option value="adri.png">Adri</option>
           <option value="paula.png">Paula</option>
           <option value="mignon.png">Mignon</option>
           <option value="richard.png">Richard</option>

@@ -98,6 +98,7 @@ const AddVideo = () => {
             defaultValue=""
           >
             <option value="">Select Outro (Optional)</option>
+            <option value="adri.mp4">Adri</option>
             <option value="paula.mp4">Paula</option>
             <option value="mignon.mp4">Mignon</option>
             <option value="richard.mp4">Richard</option>
