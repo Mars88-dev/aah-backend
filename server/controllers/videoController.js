@@ -39,7 +39,7 @@ exports.combineVideos = async (req, res) => {
             .input(watermarkPath)
             .complexFilter([
               "[0:v]scale=1280:720[base]",
-              "[1:v]scale=1280:80[wm]",
+              "[1:v]scale=1280:300[wm]",
               "[base][wm]overlay=(main_w-overlay_w)/2:main_h-overlay_h"
             ]);
         } else {
