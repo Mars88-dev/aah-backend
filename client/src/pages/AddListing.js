@@ -103,12 +103,39 @@ const AddListing = () => {
         <select name="template" onChange={handleChange} className="w-full px-4 py-2 rounded bg-slate-800">
           <option value="">Select Template</option>
           <option value="adri.png">Adri</option>
-          <option value="paula.png">Paula</option>
-          <option value="mignon.png">Mignon</option>
-          <option value="richard.png">Richard</option>
-          <option value="jlee.png">Juan-Lee</option>
+          <option value="charlene.png">Charlene</option>
           <option value="cidreck.png">Cidreck</option>
+          <option value="dean.png">Dean</option>
+          <option value="erika.png">Erika</option>
+          <option value="florence.png">Florence</option>
+          <option value="given.png">Given</option>
+          <option value="griselda.png">Griselda</option>
+          <option value="henry.png">Henry</option>
+          <option value="ilona.png">Ilona</option>
+          <option value="ilse.png">Ilse</option>
+          <option value="jaco.png">Jaco</option>
+          <option value="jacolien.png">Jacolien</option>
+          <option value="jacques.png">Jacques</option>
+          <option value="jeanette.png">Jeanette</option>
+          <option value="jlee.png">Jlee</option>
+          <option value="kwanele.png">Kwanele</option>
+          <option value="lapo.png">Lapo</option>
+          <option value="lizzy.png">Lizzy</option>
+          <option value="maki.png">Maki</option>
+          <option value="martha.png">Martha</option>
+          <option value="mignon.png">Mignon</option>
+          <option value="oupa.png">Oupa</option>
+          <option value="paula.png">Paula</option>
+          <option value="richard.png">Richard</option>
+          <option value="rudoplh.png">Rudolph</option>
+          <option value="shirley.png">Shirley</option>
+          <option value="solly.png">Solly</option>
+          <option value="sylvia.png">Sylvia</option>
+          <option value="theuns.png">Theuns</option>
+          <option value="veronika.png">Veronika</option>
           <option value="victoria.png">Victoria</option>
+          <option value="wesley.png">Wesley</option>
+          <option value="zach.png">Zach</option>
         </select>
 
         <button type="submit" className="w-full py-3 font-bold text-white bg-green-500 rounded hover:bg-green-600">

@@ -99,12 +99,38 @@ const AddVideo = () => {
           >
             <option value="">Select Outro (Optional)</option>
             <option value="adri.mp4">Adri</option>
-            <option value="paula.mp4">Paula</option>
-            <option value="mignon.mp4">Mignon</option>
-            <option value="richard.mp4">Richard</option>
-            <option value="jlee.mp4">Juan-Lee</option>
+            <option value="charlene.mp4">Charlene</option>
             <option value="cidreck.mp4">Cidreck</option>
+            <option value="dean.mp4">Dean</option>
+            <option value="erika.mp4">Erika</option>
+            <option value="florence.mp4">Florence</option>
+            <option value="given.mp4">Given</option>
+            <option value="griselda.mp4">Griselda</option>
+            <option value="henry.mp4">Henry</option>
+            <option value="ilona.mp4">Ilona</option>
+            <option value="ilse.mp4">Ilse</option>
+            <option value="jaco.mp4">Jaco</option>
+            <option value="jacolien.mp4">Jacolien</option>
+            <option value="jacques.mp4">Jacques</option>
+            <option value="jeanette.mp4">Jeanette</option>
+            <option value="jlee.mp4">Jlee</option>
+            <option value="kwanele.mp4">Kwanele</option>
+            <option value="lapo.mp4">Lapo</option>
+            <option value="lizzy.mp4">Lizzy</option>
+            <option value="maki.mp4">Maki</option>
+            <option value="martha.mp4">Martha</option>
+            <option value="mignon.mp4">Mignon</option>
+            <option value="oupa.mp4">Oupa</option>
+            <option value="paula.mp4">Paula</option>
+            <option value="richard.mp4">Richard</option>
+            <option value="rudolph.mp4">Rudoplh</option>
+            <option value="shirley.mp4">Shirley</option>
+            <option value="sylvia.mp4">Sylvia</option>
+            <option value="theuns.mp4">Theuns</option>
+            <option value="veronika.mp4">Veronika</option>
             <option value="victoria.mp4">Victoria</option>
+            <option value="wesley.mp4">Wesley</option>
+            <option value="zach.mp4">Zach</option>
           </select>
 
           <button
